@@ -1,0 +1,42 @@
+# Byte-compiled / optimized / DLL files
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+*.log
+
+# Environments & secrets
+.env
+.venv/
+venv/
+env/
+
+# Node modules (React)
+node_modules/
+npm-debug.log*
+
+# IDEs & System files
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local database files
+*.db
+*.sqlite
+my.cnf

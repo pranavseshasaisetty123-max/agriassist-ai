@@ -153,5 +153,92 @@ class AIService:
             logger.error(f"Gemini structured generation failed: {e}")
             raise e
 
+    def generate_weather_advisory(
+        self,
+        crop_planned: str,
+        ph: float,
+        nitrogen: float,
+        phosphorus: float,
+        potassium: float,
+        organic_matter: float | None,
+        location: str,
+        current_temp: float,
+        current_condition: str,
+        forecast_summary: str
+    ) -> dict:
+        """
+        Query Gemini to analyze soil reports and the 7-day weather forecast,
+        returning structured advisories.
+        """
+        if not self.enabled or not self.client:
+            # Return demo mock response
+            return {
+                "advisory_points": [
+                    f"[DEMO] Upcoming forecast is {current_condition} ({current_temp}°C). Perfect for planned crop {crop_planned}.",
+                    f"[DEMO] Soil pH {ph} is optimal. Keep watering regularly."
+                ],
+                "severity": "info"
+            }
+
+        import time
+        from pydantic import BaseModel
+        
+        class AIAdvisorySchema(BaseModel):
+            advisory_points: List[str]
+            severity: str
+
+        prompt = (
+            f"You are a professional agricultural scientist and agronomist.\n"
+            f"Analyze the soil report and weather forecast to provide immediate, actionable farming advisories.\n\n"
+            f"Farmer Context:\n"
+            f"- Location: {location}\n"
+            f"- Planned Crop: {crop_planned}\n"
+            f"Soil Metrics:\n"
+            f"- pH: {ph}\n"
+            f"- Nitrogen: {nitrogen} mg/kg\n"
+            f"- Phosphorus: {phosphorus} mg/kg\n"
+            f"- Potassium: {potassium} mg/kg\n"
+            f"- Organic Matter: {f'{organic_matter}%' if organic_matter is not None else 'Not tested'}\n\n"
+            f"Weather Context:\n"
+            f"- Current: {current_temp}°C, {current_condition}\n"
+            f"- 7-Day Forecast: {forecast_summary}\n\n"
+            f"Instructions:\n"
+            f"1. Evaluate if upcoming weather impacts irrigation (e.g., reduce watering before heavy rain, increase before hot dry spells).\n"
+            f"2. Evaluate if upcoming weather impacts fertilizer application (e.g., do not apply nitrogen right before intense rain to prevent leaching).\n"
+            f"3. Evaluate any extreme conditions (e.g. frost, storm) and recommend protective actions.\n"
+            f"4. Provide 3 to 5 clear, concise, actionable advice bullet points in 'advisory_points'.\n"
+            f"5. Categorize the advisory 'severity' as 'info', 'warning', or 'critical'."
+        )
+
+        max_retries = 2
+        delay = 1.0
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=AIAdvisorySchema,
+                        system_instruction=(
+                            "You are AgriAssist AI, a professional agricultural scientist and agronomist. "
+                            "Evaluate weather and soil variables to suggest immediate crop protection actions."
+                        )
+                    )
+                )
+
+                if response.text:
+                    import json
+                    return json.loads(response.text)
+                else:
+                    raise ValueError("Empty response received from Gemini.")
+            except Exception as e:
+                if attempt == max_retries:
+                    logger.error(f"Gemini advisory generation failed after {max_retries} retries: {e}", exc_info=True)
+                    raise e
+                logger.warning(f"Gemini API request failed on attempt {attempt+1}. Retrying in {delay}s... Error: {e}")
+                time.sleep(delay)
+                delay *= 2
+
 
 ai_service = AIService()

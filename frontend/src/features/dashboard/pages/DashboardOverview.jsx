@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../../../services/api";
+import WeatherWidget from "../components/WeatherWidget";
+import ForecastWidget from "../components/ForecastWidget";
+import AdvisoryWidget from "../components/AdvisoryWidget";
 
 const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil }) => {
   const [latestReport, setLatestReport] = useState(null);
@@ -22,26 +25,24 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil }) => {
   }, []);
 
   const getNutrientStatus = (val, name) => {
-    // Basic agricultural thresholds for demo status badges
     if (name === "ph") {
       if (val < 6.0) return { label: "Acidic", class: "status-low", color: "#e53e3e" };
       if (val > 7.5) return { label: "Alkaline", class: "status-high", color: "#dd6b20" };
       return { label: "Optimal", class: "status-optimal", color: "#38a169" };
     }
-    // NPK ranges in mg/kg
     if (val < 30) return { label: "Low (Deficient)", class: "status-low", color: "#e53e3e" };
     if (val < 80) return { label: "Moderate", class: "status-moderate", color: "#d69e2e" };
     return { label: "Optimal", class: "status-optimal", color: "#38a169" };
   };
 
   return (
-    <div className="dashboard-scroll-container animate-fade-in" style={{ padding: "32px", overflowY: "auto", height: "100%" }}>
+    <div className="dashboard-scroll-container animate-fade-in" style={{ padding: "32px", overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: "24px" }}>
+      {/* 1. Hero banner */}
       <div className="dashboard-hero" style={{
         background: "linear-gradient(135deg, var(--primary) 0%, hsl(var(--primary-hue), var(--primary-sat), 15%) 100%)",
         color: "var(--text-light)",
         borderRadius: "var(--radius-md)",
         padding: "32px",
-        marginBottom: "32px",
         boxShadow: "var(--shadow-lg)",
         position: "relative",
         overflow: "hidden"
@@ -60,7 +61,7 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil }) => {
           }}>🌾 Smart Agriculture Dashboard</span>
           <h1 style={{ fontSize: "2rem", marginBottom: "8px", fontWeight: "800" }}>Manage Your Soil Health</h1>
           <p style={{ fontSize: "1rem", opacity: 0.9, maxWidth: "600px", lineHeight: "1.5" }}>
-            Log soil reports, get AI-powered fertilizer recommendations tailored for your planned crops, and consult with our agronomist chatbot.
+            Log soil reports, get AI-powered fertilizer recommendations tailored for planned crops, and monitor weather variables.
           </p>
         </div>
         <div style={{
@@ -75,8 +76,14 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil }) => {
         }}>🌱</div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px", marginBottom: "32px" }}>
-        {/* Quick Action Card 1 */}
+      {/* 2. Weather Section Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px" }}>
+        <WeatherWidget />
+        <ForecastWidget />
+      </div>
+
+      {/* 3. Action Cards Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px" }}>
         <div className="glass" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
@@ -96,7 +103,6 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil }) => {
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Configure reports ➔</span>
         </div>
 
-        {/* Quick Action Card 2 */}
         <div className="glass" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
@@ -117,134 +123,94 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil }) => {
         </div>
       </div>
 
-      <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)" }}>
-        <h2 style={{ fontSize: "1.35rem", marginBottom: "20px", color: "var(--text-primary)" }}>📊 Recent Soil Health Status</h2>
-        
-        {loading ? (
-          <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)" }}>
-            <span className="dot-spinner"></span> Loading diagnostics...
-          </div>
-        ) : !latestReport ? (
-          <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)" }}>
-            <p style={{ marginBottom: "16px" }}>No soil test reports logged yet.</p>
-            <button className="btn btn-primary" onClick={onNavigateToSoil}>
-              🧪 Log First Soil Test
-            </button>
-          </div>
-        ) : (
-          <div>
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "24px", paddingBottom: "16px", borderBottom: "1px solid var(--border-light)" }}>
-              <div>
-                <h4 style={{ fontSize: "1.1rem", color: "var(--text-primary)" }}>Target Crop: <strong>{latestReport.crop_planned}</strong></h4>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Tested on {new Date(latestReport.tested_at).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <button className="btn btn-secondary" onClick={onNavigateToSoil}>
-                  View Analyzer Timeline
-                </button>
-              </div>
+      {/* 4. Split Status & Advisory Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "24px" }}>
+        {/* Soil health status */}
+        <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column" }}>
+          <h2 style={{ fontSize: "1.25rem", marginBottom: "20px", color: "var(--text-primary)", fontWeight: "700" }}>📊 Recent Soil Health</h2>
+          
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="dot-spinner"></span> Loading diagnostics...
             </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "20px" }}>
-              {/* pH dial */}
-              <div style={{ textAlign: "center", padding: "16px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "var(--text-secondary)", display: "block", marginBottom: "8px" }}>Soil pH</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: "800", color: "var(--text-primary)", marginBottom: "4px" }}>{latestReport.ph}</div>
-                <span style={{
-                  fontSize: "0.75rem",
-                  fontWeight: "600",
-                  padding: "2px 8px",
-                  borderRadius: "var(--radius-full)",
-                  backgroundColor: getNutrientStatus(latestReport.ph, "ph").color + "20",
-                  color: getNutrientStatus(latestReport.ph, "ph").color
-                }}>{getNutrientStatus(latestReport.ph, "ph").label}</span>
-              </div>
-
-              {/* N dial */}
-              <div style={{ textAlign: "center", padding: "16px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "var(--text-secondary)", display: "block", marginBottom: "8px" }}>Nitrogen (N)</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: "800", color: "var(--text-primary)", marginBottom: "4px" }}>{latestReport.nitrogen} <span style={{ fontSize: "0.75rem", fontWeight: "500" }}>mg/kg</span></div>
-                <span style={{
-                  fontSize: "0.75rem",
-                  fontWeight: "600",
-                  padding: "2px 8px",
-                  borderRadius: "var(--radius-full)",
-                  backgroundColor: getNutrientStatus(latestReport.nitrogen, "n").color + "20",
-                  color: getNutrientStatus(latestReport.nitrogen, "n").color
-                }}>{getNutrientStatus(latestReport.nitrogen, "n").label}</span>
-              </div>
-
-              {/* P dial */}
-              <div style={{ textAlign: "center", padding: "16px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "var(--text-secondary)", display: "block", marginBottom: "8px" }}>Phosphorus (P)</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: "800", color: "var(--text-primary)", marginBottom: "4px" }}>{latestReport.phosphorus} <span style={{ fontSize: "0.75rem", fontWeight: "500" }}>mg/kg</span></div>
-                <span style={{
-                  fontSize: "0.75rem",
-                  fontWeight: "600",
-                  padding: "2px 8px",
-                  borderRadius: "var(--radius-full)",
-                  backgroundColor: getNutrientStatus(latestReport.phosphorus, "p").color + "20",
-                  color: getNutrientStatus(latestReport.phosphorus, "p").color
-                }}>{getNutrientStatus(latestReport.phosphorus, "p").label}</span>
-              </div>
-
-              {/* K dial */}
-              <div style={{ textAlign: "center", padding: "16px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "var(--text-secondary)", display: "block", marginBottom: "8px" }}>Potassium (K)</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: "800", color: "var(--text-primary)", marginBottom: "4px" }}>{latestReport.potassium} <span style={{ fontSize: "0.75rem", fontWeight: "500" }}>mg/kg</span></div>
-                <span style={{
-                  fontSize: "0.75rem",
-                  fontWeight: "600",
-                  padding: "2px 8px",
-                  borderRadius: "var(--radius-full)",
-                  backgroundColor: getNutrientStatus(latestReport.potassium, "k").color + "20",
-                  color: getNutrientStatus(latestReport.potassium, "k").color
-                }}>{getNutrientStatus(latestReport.potassium, "k").label}</span>
-              </div>
+          ) : !latestReport ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <p style={{ marginBottom: "16px" }}>No soil test reports logged yet.</p>
+              <button className="btn btn-primary" onClick={onNavigateToSoil}>
+                Log First Soil Test
+              </button>
             </div>
-
-            {latestReport.recommendation ? (
-              <div style={{
-                marginTop: "24px",
-                padding: "20px",
-                backgroundColor: "var(--primary-soft)",
-                borderRadius: "var(--radius-sm)",
-                borderLeft: "4px solid var(--primary)"
-              }}>
-                <h5 style={{ fontSize: "1rem", color: "var(--primary)", marginBottom: "8px", fontWeight: "700" }}>🌿 Current AI Fertilizer Recommendation Status</h5>
-                <p style={{ fontSize: "0.875rem", color: "var(--text-primary)", lineHeight: "1.5" }}>
-                  {latestReport.recommendation.ai_raw_analysis.substring(0, 180)}...
-                </p>
-                <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--primary)", marginTop: "8px", display: "inline-block", cursor: "pointer" }} onClick={onNavigateToSoil}>
-                  Read Full Recommendations & Fertilizer Schedule ➔
-                </span>
-              </div>
-            ) : (
-              <div style={{
-                marginTop: "24px",
-                padding: "20px",
-                backgroundColor: "#fffdf5",
-                borderRadius: "var(--radius-sm)",
-                borderLeft: "4px solid var(--accent)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "12px"
-              }}>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", flex: 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-light)", paddingBottom: "12px" }}>
                 <div>
-                  <h5 style={{ fontSize: "1rem", color: "var(--accent)", marginBottom: "4px", fontWeight: "700" }}>⚠️ Recommendations Pending</h5>
-                  <p style={{ fontSize: "0.875rem", color: "var(--text-primary)" }}>
-                    You have not generated the AI agronomist analysis for this report yet.
-                  </p>
+                  <h4 style={{ fontSize: "1rem", color: "var(--text-primary)" }}>Planned Crop: <strong>{latestReport.crop_planned}</strong></h4>
+                  <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tested on {new Date(latestReport.tested_at).toLocaleDateString()}</p>
                 </div>
-                <button className="btn btn-primary" onClick={onNavigateToSoil} style={{ backgroundColor: "var(--accent)", boxShadow: "none" }}>
-                  Analyze Soil
+                <button className="btn btn-secondary" onClick={onNavigateToSoil} style={{ padding: "6px 12px", fontSize: "0.75rem" }}>
+                  View Analyzer
                 </button>
               </div>
-            )}
-          </div>
-        )}
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div style={{ padding: "12px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
+                  <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Soil pH</span>
+                  <div style={{ fontSize: "1.4rem", fontWeight: "800", margin: "4px 0" }}>{latestReport.ph}</div>
+                  <span style={{
+                    fontSize: "0.7rem",
+                    fontWeight: "600",
+                    padding: "1px 6px",
+                    borderRadius: "var(--radius-full)",
+                    backgroundColor: getNutrientStatus(latestReport.ph, "ph").color + "20",
+                    color: getNutrientStatus(latestReport.ph, "ph").color
+                  }}>{getNutrientStatus(latestReport.ph, "ph").label}</span>
+                </div>
+
+                <div style={{ padding: "12px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
+                  <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Nitrogen</span>
+                  <div style={{ fontSize: "1.4rem", fontWeight: "800", margin: "4px 0" }}>{latestReport.nitrogen}</div>
+                  <span style={{
+                    fontSize: "0.7rem",
+                    fontWeight: "600",
+                    padding: "1px 6px",
+                    borderRadius: "var(--radius-full)",
+                    backgroundColor: getNutrientStatus(latestReport.nitrogen, "n").color + "20",
+                    color: getNutrientStatus(latestReport.nitrogen, "n").color
+                  }}>{getNutrientStatus(latestReport.nitrogen, "n").label}</span>
+                </div>
+
+                <div style={{ padding: "12px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
+                  <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Phosphorus</span>
+                  <div style={{ fontSize: "1.4rem", fontWeight: "800", margin: "4px 0" }}>{latestReport.phosphorus}</div>
+                  <span style={{
+                    fontSize: "0.7rem",
+                    fontWeight: "600",
+                    padding: "1px 6px",
+                    borderRadius: "var(--radius-full)",
+                    backgroundColor: getNutrientStatus(latestReport.phosphorus, "p").color + "20",
+                    color: getNutrientStatus(latestReport.phosphorus, "p").color
+                  }}>{getNutrientStatus(latestReport.phosphorus, "p").label}</span>
+                </div>
+
+                <div style={{ padding: "12px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
+                  <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Potassium</span>
+                  <div style={{ fontSize: "1.4rem", fontWeight: "800", margin: "4px 0" }}>{latestReport.potassium}</div>
+                  <span style={{
+                    fontSize: "0.7rem",
+                    fontWeight: "600",
+                    padding: "1px 6px",
+                    borderRadius: "var(--radius-full)",
+                    backgroundColor: getNutrientStatus(latestReport.potassium, "k").color + "20",
+                    color: getNutrientStatus(latestReport.potassium, "k").color
+                  }}>{getNutrientStatus(latestReport.potassium, "k").label}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* AI Weather-Soil Smart Advisory */}
+        <AdvisoryWidget />
       </div>
     </div>
   );

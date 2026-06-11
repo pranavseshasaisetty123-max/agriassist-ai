@@ -83,5 +83,75 @@ class AIService:
             logger.error(f"Gemini API request failed: {e}")
             return f"Error communicating with Gemini AI: {str(e)}"
 
+    def generate_soil_recommendation(
+        self,
+        ph: float,
+        nitrogen: float,
+        phosphorus: float,
+        potassium: float,
+        organic_matter: float | None,
+        crop_planned: str,
+        location: str | None
+    ) -> dict:
+        """
+        Invoke Gemini to analyze soil health parameters and return a structured
+        recommendation conforming to SoilRecommendationSchema.
+        """
+        if not self.enabled or not self.client:
+            # Return demo mock response
+            return {
+                "nitrogen_recommendation": f"[DEMO] Suggest Nitrogen treatment for planned crop {crop_planned}.",
+                "phosphorus_recommendation": f"[DEMO] Suggest Phosphorus treatment for planned crop {crop_planned}.",
+                "potassium_recommendation": f"[DEMO] Suggest Potassium treatment for planned crop {crop_planned}.",
+                "fertilizer_schedule": f"[DEMO] Week 1: Basal dressing.\nWeek 4: Top dressing.",
+                "ai_raw_analysis": f"[DEMO MODE] Analyzed report with pH {ph}, N {nitrogen}, P {phosphorus}, K {potassium}."
+            }
+
+        try:
+            from pydantic import BaseModel
+            
+            class SoilRecommendationSchema(BaseModel):
+                nitrogen_recommendation: str
+                phosphorus_recommendation: str
+                potassium_recommendation: str
+                fertilizer_schedule: str
+                ai_raw_analysis: str
+
+            prompt = (
+                f"Analyze the following soil test report details and provide structured agronomist recommendations.\n"
+                f"Soil Metrics:\n"
+                f"- pH: {ph}\n"
+                f"- Nitrogen: {nitrogen} mg/kg\n"
+                f"- Phosphorus: {phosphorus} mg/kg\n"
+                f"- Potassium: {potassium} mg/kg\n"
+                f"- Organic Matter: {f'{organic_matter}%' if organic_matter is not None else 'Not tested'}\n"
+                f"Planned Crop: {crop_planned}\n"
+                f"Location: {location or 'Unknown'}\n\n"
+                f"Provide fertilizer recommendations for each nutrient (nitrogen, phosphorus, potassium) and a clear, chronological fertilizer application schedule."
+            )
+
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=SoilRecommendationSchema,
+                    system_instruction=(
+                        "You are AgriAssist AI, a professional agricultural scientist and agronomist. "
+                        "Your goal is to provide accurate, specific, and actionable fertilizer and soil "
+                        "health recommendations to farmers based on their soil test metrics."
+                    )
+                )
+            )
+
+            if response.text:
+                import json
+                return json.loads(response.text)
+            else:
+                raise ValueError("Empty response received from Gemini model.")
+        except Exception as e:
+            logger.error(f"Gemini structured generation failed: {e}")
+            raise e
+
 
 ai_service = AIService()

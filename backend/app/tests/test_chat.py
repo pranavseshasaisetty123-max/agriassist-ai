@@ -1,4 +1,5 @@
 from fastapi import status
+from unittest.mock import patch
 
 
 def _get_token(client, email):
@@ -57,7 +58,9 @@ def test_list_chat_sessions(client):
     assert data[0]["title"] == "Session 2"  # Sorted desc by updated_at
 
 
-def test_send_and_retrieve_messages(client):
+@patch("app.services.chat.ai_service.generate_chat_response")
+def test_send_and_retrieve_messages(mock_generate, client):
+    mock_generate.return_value = "Mocked AI response: handle aphids by using neem oil."
     token = _get_token(client, "chat@example.com")
     
     # Create session
@@ -76,7 +79,7 @@ def test_send_and_retrieve_messages(client):
     assert msg_response.status_code == status.HTTP_200_OK
     assert len(msg_response.json()) == 0
     
-    # Send message (triggers mock AI response since no key set)
+    # Send message (triggers mock AI response)
     post_response = client.post(
         f"/api/v1/chat/sessions/{session_id}/messages",
         headers={"Authorization": f"Bearer {token}"},

@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import api from "../../../services/api";
+import DashboardOverview from "../../dashboard/pages/DashboardOverview";
+import SoilAnalyzerPage from "../../soil/pages/SoilAnalyzerPage";
 import "./Chat.css";
 
 const ChatPage = () => {
   const { currentFarmer, logout } = useAuth();
   
+  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, soil, chat
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -34,8 +37,10 @@ const ChatPage = () => {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isSending]);
+    if (activeTab === "chat") {
+      scrollToBottom();
+    }
+  }, [messages, isSending, activeTab]);
 
   // Load chat sessions on component mount
   const fetchSessions = async () => {
@@ -58,7 +63,7 @@ const ChatPage = () => {
 
   // Fetch messages when active session changes
   useEffect(() => {
-    if (activeSessionId) {
+    if (activeSessionId && activeTab === "chat") {
       const fetchMessages = async () => {
         setIsMessagesLoading(true);
         try {
@@ -71,10 +76,10 @@ const ChatPage = () => {
         }
       };
       fetchMessages();
-    } else {
+    } else if (!activeSessionId) {
       setMessages([]);
     }
-  }, [activeSessionId]);
+  }, [activeSessionId, activeTab]);
 
   // Handle creating a new chat session
   const handleCreateSession = async () => {
@@ -84,6 +89,7 @@ const ChatPage = () => {
       setSessions([response.data, ...sessions]);
       setActiveSessionId(response.data.id);
       setShowProfileSettings(false);
+      setActiveTab("chat");
     } catch (error) {
       console.error("Failed to create chat session:", error);
     }
@@ -137,6 +143,34 @@ const ChatPage = () => {
     }
   };
 
+  const getHeaderTitle = () => {
+    if (showProfileSettings) return "Farmer Settings";
+    switch (activeTab) {
+      case "dashboard":
+        return "AgriAssist Dashboard";
+      case "soil":
+        return "Soil Diagnostics Center";
+      case "chat":
+        return sessions.find((s) => s.id === activeSessionId)?.title || "AI Consult Agent";
+      default:
+        return "AgriAssist Agent";
+    }
+  };
+
+  const getHeaderStatus = () => {
+    if (showProfileSettings) return "Manage personal parameters";
+    switch (activeTab) {
+      case "dashboard":
+        return `Welcome back, ${currentFarmer?.first_name || "Farmer"}`;
+      case "soil":
+        return "Log and analyze soil parameters";
+      case "chat":
+        return "AI Agronomist Active";
+      default:
+        return "";
+    }
+  };
+
   return (
     <div className="chat-layout-container">
       {/* 1. Sidebar Panel */}
@@ -146,35 +180,74 @@ const ChatPage = () => {
           <span className="brand-title brand-font">AgriAssist AI</span>
         </div>
         
-        <button className="btn btn-primary new-session-btn" onClick={handleCreateSession}>
-          ➕ New Consult
-        </button>
-
-        <div className="sidebar-sessions-list">
-          {isSessionsLoading ? (
-            <div className="sidebar-loader">
-              <span className="dot-spinner"></span> Loading history...
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="no-sessions-msg">No consulting topics started yet.</div>
-          ) : (
-            sessions.map((session) => (
-              <div
-                key={session.id}
-                className={`session-item-row ${activeSessionId === session.id && !showProfileSettings ? "active-item" : ""}`}
-                onClick={() => {
-                  setActiveSessionId(session.id);
-                  setShowProfileSettings(false);
-                }}
-              >
-                <span className="session-icon">💬</span>
-                <span className="session-title-text">{session.title}</span>
-              </div>
-            ))
-          )}
+        {/* Navigation Workspace Tabs */}
+        <div className="sidebar-tabs-nav" style={{ padding: "16px 12px 8px", display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div
+            className={`session-item-row ${activeTab === "dashboard" && !showProfileSettings ? "active-item" : ""}`}
+            onClick={() => {
+              setActiveTab("dashboard");
+              setShowProfileSettings(false);
+            }}
+          >
+            <span className="session-icon">🌾</span>
+            <span className="session-title-text">Dashboard</span>
+          </div>
+          <div
+            className={`session-item-row ${activeTab === "soil" && !showProfileSettings ? "active-item" : ""}`}
+            onClick={() => {
+              setActiveTab("soil");
+              setShowProfileSettings(false);
+            }}
+          >
+            <span className="session-icon">🧪</span>
+            <span className="session-title-text">Soil Analyzer</span>
+          </div>
+          <div
+            className={`session-item-row ${activeTab === "chat" && !showProfileSettings ? "active-item" : ""}`}
+            onClick={() => {
+              setActiveTab("chat");
+              setShowProfileSettings(false);
+            }}
+          >
+            <span className="session-icon">💬</span>
+            <span className="session-title-text">Consult Agent</span>
+          </div>
         </div>
 
-        <div className="sidebar-footer">
+        {/* Context-aware Chat Section */}
+        {activeTab === "chat" && !showProfileSettings && (
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+            <div style={{ height: "1px", backgroundColor: "var(--border-light)", margin: "8px 20px" }}></div>
+            <button className="btn btn-primary new-session-btn" onClick={handleCreateSession} style={{ marginTop: "8px" }}>
+              ➕ New Consult
+            </button>
+
+            <div className="sidebar-sessions-list" style={{ marginTop: "4px" }}>
+              {isSessionsLoading ? (
+                <div className="sidebar-loader">
+                  <span className="dot-spinner"></span> Loading history...
+                </div>
+              ) : sessions.length === 0 ? (
+                <div className="no-sessions-msg">No consulting topics started yet.</div>
+              ) : (
+                sessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className={`session-item-row ${activeSessionId === session.id ? "active-item" : ""}`}
+                    onClick={() => {
+                      setActiveSessionId(session.id);
+                    }}
+                  >
+                    <span className="session-icon">💬</span>
+                    <span className="session-title-text">{session.title}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="sidebar-footer" style={{ marginTop: "auto" }}>
           <div className="user-profile-widget" onClick={() => setShowProfileSettings(true)}>
             <div className="avatar">🚜</div>
             <div className="user-info">
@@ -189,12 +262,8 @@ const ChatPage = () => {
       <main className="chat-main-panel">
         <header className="chat-panel-header glass">
           <div className="header-info">
-            <h2 className="header-title brand-font">
-              {showProfileSettings ? "Farmer Settings" : sessions.find((s) => s.id === activeSessionId)?.title || "AgriAssist Agent"}
-            </h2>
-            <p className="header-status">
-              {showProfileSettings ? "Manage personal parameters" : "AI Agronomist Active"}
-            </p>
+            <h2 className="header-title brand-font">{getHeaderTitle()}</h2>
+            <p className="header-status">{getHeaderStatus()}</p>
           </div>
           <div className="header-actions">
             <button
@@ -280,8 +349,17 @@ const ChatPage = () => {
               </form>
             </div>
           </div>
+        ) : activeTab === "dashboard" ? (
+          /* Dashboard Home Overview Tab */
+          <DashboardOverview
+            onNavigateToChat={() => setActiveTab("chat")}
+            onNavigateToSoil={() => setActiveTab("soil")}
+          />
+        ) : activeTab === "soil" ? (
+          /* Soil Health Analysis Tab */
+          <SoilAnalyzerPage />
         ) : (
-          /* Chat Window Screen */
+          /* Consult Agent Chat Window Screen Tab */
           <div className="chat-window-wrapper">
             <div className="chat-messages-container">
               {isMessagesLoading ? (

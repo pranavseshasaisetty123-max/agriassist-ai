@@ -4,6 +4,7 @@ import api from "../../../services/api";
 import DashboardOverview from "../../dashboard/pages/DashboardOverview";
 import SoilAnalyzerPage from "../../soil/pages/SoilAnalyzerPage";
 import DiseaseDetectionPage from "../../disease/pages/DiseaseDetectionPage";
+import CropRecommendationsPage from "../../crop-recommendations/pages/CropRecommendationsPage";
 import "./Chat.css";
 
 const ChatPage = () => {
@@ -153,6 +154,8 @@ const ChatPage = () => {
         return "Soil Diagnostics Center";
       case "disease":
         return "Plant Disease Diagnostics";
+      case "crop-recommendations":
+        return "Smart Crop Recommendations";
       case "chat":
         return sessions.find((s) => s.id === activeSessionId)?.title || "AI Consult Agent";
       default:
@@ -169,6 +172,8 @@ const ChatPage = () => {
         return "Log and analyze soil parameters";
       case "disease":
         return "Upload leaves to analyze issues";
+      case "crop-recommendations":
+        return "AI-powered crop matches";
       case "chat":
         return "AI Agronomist Active";
       default:
@@ -216,6 +221,16 @@ const ChatPage = () => {
           >
             <span className="session-icon">🔍</span>
             <span className="session-title-text">Disease Detection</span>
+          </div>
+          <div
+            className={`session-item-row ${activeTab === "crop-recommendations" && !showProfileSettings ? "active-item" : ""}`}
+            onClick={() => {
+              setActiveTab("crop-recommendations");
+              setShowProfileSettings(false);
+            }}
+          >
+            <span className="session-icon">🌾</span>
+            <span className="session-title-text">Crop Recommendations</span>
           </div>
           <div
             className={`session-item-row ${activeTab === "chat" && !showProfileSettings ? "active-item" : ""}`}
@@ -376,6 +391,9 @@ const ChatPage = () => {
         ) : activeTab === "disease" ? (
           /* Disease Detection Page Tab */
           <DiseaseDetectionPage />
+        ) : activeTab === "crop-recommendations" ? (
+          /* Smart Crop Recommendations Tab */
+          <CropRecommendationsPage />
         ) : (
           /* Consult Agent Chat Window Screen Tab */
           <div className="chat-window-wrapper">

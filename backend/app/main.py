@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 from app.core.config import settings
-from app.api import auth, farmers, chat, soil, weather, disease
+from app.api import auth, farmers, chat, soil, weather, disease, crop_recommendation
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -27,6 +27,7 @@ app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["cha
 app.include_router(soil.router, prefix=f"{settings.API_V1_STR}/soil", tags=["soil"])
 app.include_router(weather.router, prefix=f"{settings.API_V1_STR}/weather", tags=["weather"])
 app.include_router(disease.router, prefix=f"{settings.API_V1_STR}/disease", tags=["disease"])
+app.include_router(crop_recommendation.router, prefix=f"{settings.API_V1_STR}/crop-recommendations", tags=["crop-recommendations"])
 
 
 @app.get("/")

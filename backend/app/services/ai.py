@@ -329,5 +329,129 @@ class AIService:
                 time.sleep(delay)
                 delay *= 2
 
+    def generate_crop_recommendations(
+        self,
+        soil_metrics: dict,
+        current_weather: dict,
+        forecast_summary: str,
+        location: str
+    ) -> dict:
+        """
+        Query Gemini to generate structured top 5 crop recommendations based on
+        soil metrics, location, current weather, and 7-day forecast.
+        """
+        if not self.enabled or not self.client:
+            # Return demo mock response
+            return {
+                "recommendations": [
+                    {
+                        "crop_name": "[DEMO] Wheat",
+                        "suitability_score": 90,
+                        "season": "Rabi",
+                        "recommendation_reason": "Soil pH and winter forecast are optimal for Wheat growing.",
+                        "risk_factors": ["Frost during early stages", "Late rust disease risk"],
+                        "farming_tips": ["Sow in November", "Ensure 4-6 irrigations"]
+                    },
+                    {
+                        "crop_name": "[DEMO] Mustard",
+                        "suitability_score": 85,
+                        "season": "Rabi",
+                        "recommendation_reason": "Low organic matter and cool temperature are perfect.",
+                        "risk_factors": ["Aphid infestation", "White rust disease"],
+                        "farming_tips": ["Maintain plant spacing", "Monitor for pests regularly"]
+                    },
+                    {
+                        "crop_name": "[DEMO] Barley",
+                        "suitability_score": 80,
+                        "season": "Rabi",
+                        "recommendation_reason": "Barley performs well in slightly acidic soils with low water requirements.",
+                        "risk_factors": ["Lodging under high winds", "Stripe rust"],
+                        "farming_tips": ["Use certified seeds", "Avoid excessive nitrogen application"]
+                    },
+                    {
+                        "crop_name": "[DEMO] Chickpeas",
+                        "suitability_score": 78,
+                        "season": "Rabi",
+                        "recommendation_reason": "Enriches soil nitrogen while thriving on residual moisture.",
+                        "risk_factors": ["Pod borer damage", "Wilt disease"],
+                        "farming_tips": ["Treat seeds with Rhizobium", "Ensure good drainage"]
+                    },
+                    {
+                        "crop_name": "[DEMO] Peas",
+                        "suitability_score": 75,
+                        "season": "Rabi",
+                        "recommendation_reason": "Cool climate and pH support excellent leguminous growth.",
+                        "risk_factors": ["Powdery mildew", "Frost damage during flowering"],
+                        "farming_tips": ["Provide staking for support", "Keep soil moist but not waterlogged"]
+                    }
+                ]
+            }
+
+        import time
+        from pydantic import BaseModel
+
+        class AICropRecommendationItemSchema(BaseModel):
+            crop_name: str
+            suitability_score: int
+            season: str
+            recommendation_reason: str
+            risk_factors: List[str]
+            farming_tips: List[str]
+
+        class AICropRecommendationsListSchema(BaseModel):
+            recommendations: List[AICropRecommendationItemSchema]
+
+        prompt = (
+            f"You are a professional agricultural scientist and agronomist.\n"
+            f"Generate exactly the Top 5 most suitable crops to plant based on the following farmer's environmental context:\n\n"
+            f"Farmer Context:\n"
+            f"- Location: {location}\n"
+            f"Soil Metrics:\n"
+            f"- pH: {soil_metrics.get('ph')}\n"
+            f"- Nitrogen: {soil_metrics.get('nitrogen')} mg/kg\n"
+            f"- Phosphorus: {soil_metrics.get('phosphorus')} mg/kg\n"
+            f"- Potassium: {soil_metrics.get('potassium')} mg/kg\n"
+            f"- Organic Matter: {soil_metrics.get('organic_matter')}% (if available)\n\n"
+            f"Weather Context:\n"
+            f"- Current Weather: {current_weather.get('temp')}°C, {current_weather.get('condition')}\n"
+            f"- 7-Day Forecast: {forecast_summary}\n\n"
+            f"Instructions:\n"
+            f"1. Analyze soil properties and weather parameters. Identify 5 crops that will grow best under these specific parameters.\n"
+            f"2. Assign each recommended crop a suitability score (integer from 0 to 100).\n"
+            f"3. Specify the appropriate growing season (e.g. Rabi, Kharif, Zaid).\n"
+            f"4. Provide a clear recommendation_reason, potential risk_factors (list of strings), and helpful farming_tips (list of strings) for each crop."
+        )
+
+        max_retries = 2
+        delay = 1.0
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=AICropRecommendationsListSchema,
+                        system_instruction=(
+                            "You are AgriAssist AI, a professional agricultural scientist and agronomist. "
+                            "Evaluate the farmer's soil profile and local weather conditions to recommend "
+                            "exactly 5 most suitable crops, providing clear recommendations, risks, and tips."
+                        )
+                    )
+                )
+
+                if response.text:
+                    import json
+                    return json.loads(response.text)
+                else:
+                    raise ValueError("Empty response received from Gemini.")
+            except Exception as e:
+                if attempt == max_retries:
+                    logger.error(f"Gemini crop recommendation generation failed after {max_retries} retries: {e}", exc_info=True)
+                    raise e
+                logger.warning(f"Gemini API request failed on attempt {attempt+1}. Retrying in {delay}s... Error: {e}")
+                time.sleep(delay)
+                delay *= 2
+
 
 ai_service = AIService()

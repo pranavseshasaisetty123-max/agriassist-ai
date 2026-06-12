@@ -4,6 +4,7 @@ from app.models.chat import ChatSession, ChatMessage, SenderRole
 from app.models.soil import SoilReport, SoilRecommendation
 from app.models.weather import WeatherCache
 from app.models.disease import DiseaseScan
+from app.models.crop_recommendation import CropRecommendation
 
 __all__ = [
     "Base",
@@ -14,5 +15,6 @@ __all__ = [
     "SoilReport",
     "SoilRecommendation",
     "WeatherCache",
-    "DiseaseScan"
+    "DiseaseScan",
+    "CropRecommendation"
 ]

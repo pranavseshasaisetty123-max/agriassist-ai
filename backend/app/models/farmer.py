@@ -21,3 +21,4 @@ class Farmer(Base):
     soil_reports = relationship("SoilReport", back_populates="farmer", cascade="all, delete-orphan")
     disease_scans = relationship("DiseaseScan", back_populates="farmer", cascade="all, delete-orphan")
     crop_recommendations = relationship("CropRecommendation", back_populates="farmer", cascade="all, delete-orphan")
+    profitability_analyses = relationship("ProfitabilityAnalysis", back_populates="farmer", cascade="all, delete-orphan")

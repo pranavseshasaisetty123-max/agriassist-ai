@@ -4,7 +4,7 @@ import WeatherWidget from "../components/WeatherWidget";
 import ForecastWidget from "../components/ForecastWidget";
 import AdvisoryWidget from "../components/AdvisoryWidget";
 
-const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil }) => {
+const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket }) => {
   const [latestReport, setLatestReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -120,6 +120,25 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil }) => {
             </p>
           </div>
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Consult agent ➔</span>
+        </div>
+
+        <div className="glass" style={{
+          padding: "24px",
+          borderRadius: "var(--radius-md)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          transition: "var(--transition-bounce)",
+          cursor: "pointer"
+        }} onClick={onNavigateToMarket}>
+          <div>
+            <span style={{ fontSize: "2rem", marginBottom: "16px", display: "block" }}>📈</span>
+            <h3 style={{ fontSize: "1.2rem", marginBottom: "8px", color: "var(--text-primary)" }}>Market Price Intelligence</h3>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: "1.5", marginBottom: "16px" }}>
+              Analyze historical crop price trends across states and compute yield-to-profit return margins instantly.
+            </p>
+          </div>
+          <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Analyze markets ➔</span>
         </div>
       </div>
 

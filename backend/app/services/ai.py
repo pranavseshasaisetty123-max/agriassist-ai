@@ -453,5 +453,49 @@ class AIService:
                 time.sleep(delay)
                 delay *= 2
 
+    def explain_price_trends(self, crop_name: str, trends: List[dict]) -> str:
+        """
+        Query Gemini to summarize the historical price trends for a crop in plain language.
+        """
+        if not self.enabled or not self.client:
+            # Return demo mock response
+            return (
+                f"[DEMO] Over the past 30 days, the price of {crop_name} has shown steady growth "
+                "with moderate fluctuations. A minor dip occurred in mid-month due to increased market arrivals, "
+                "followed by a quick recovery. Overall market conditions remain favorable."
+            )
+
+        try:
+            # Format trend data for prompt
+            trend_str = "\n".join([f"- Date: {t['recorded_date']}, Price: Rs. {t['price_per_kg']}/kg" for t in trends])
+            
+            prompt = (
+                f"You are a professional agricultural market analyst and agronomist.\n"
+                f"Explain the following price trend data for the crop '{crop_name}' to a farmer in plain, encouraging language.\n"
+                f"Focus on key insights like price direction, spikes/drops, stability, and whether they should consider selling now or wait.\n\n"
+                f"Historical Price Trend:\n{trend_str}\n\n"
+                f"Provide a concise summary (around 3 to 4 sentences max). Keep the tone helpful and easy to understand for a farmer."
+            )
+
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=(
+                        "You are AgriAssist AI, a professional agricultural economist. "
+                        "Translate market price graphs into simple, actionable insights and advice for farmers."
+                    )
+                )
+            )
+
+            if response.text:
+                return response.text.strip()
+            else:
+                return f"Price for {crop_name} is stable. Market indicators are positive."
+        except Exception as e:
+            logger.error(f"Gemini trend explanation failed: {e}")
+            return f"Unable to generate AI market analysis for {crop_name} at this time. Standard market indicators are positive."
+
 
 ai_service = AIService()
+

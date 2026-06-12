@@ -46,9 +46,9 @@ def verify_sprint4():
     headers = {"Authorization": f"Bearer {token}"}
     print("✅ Logged in successfully! JWT token retrieved.")
 
-    # 3. Perform Disease Scan (since we are running live, it will trigger mock demo if Gemini key is rate limited or run real scan)
-    print("\n3. Uploading leaf image for disease diagnostics...")
-    img_path = "/Users/pranav/.gemini/antigravity-ide/brain/61db1804-3357-4b81-918c-4dd50b0df21e/crop_selected_tomatoes_1781181655462.png"
+    # 3. Perform Valid Disease Scan (using generated tomato leaf image)
+    print("\n3. Uploading realistic leaf image for disease diagnostics...")
+    img_path = "/Users/pranav/.gemini/antigravity-ide/brain/61db1804-3357-4b81-918c-4dd50b0df21e/tomato_leaf_spot_1781229720140.png"
     with open(img_path, "rb") as f:
         real_img = f.read()
     files = {"file": ("tomato_leaf_spot.png", io.BytesIO(real_img), "image/png")}
@@ -66,6 +66,7 @@ def verify_sprint4():
     scan_data = scan_resp.json()
     print("✅ Crop leaf scanned successfully!")
     print("\n=== AI Crop Disease Diagnosis ===")
+    print(f"Diagnosis Type:   {scan_data['diagnosis_type']}")
     print(f"Disease Detected: {scan_data['disease_name']}")
     print(f"Confidence Level: {(scan_data['confidence'] * 100):.0f}% Match")
     print(f"Severity Status:  {scan_data['severity'].upper()}")
@@ -83,8 +84,68 @@ def verify_sprint4():
 
     scan_id = scan_data["id"]
 
-    # 4. Fetch History
-    print("\n4. Fetching diagnostic scan history...")
+    # 4. Verification: Fetch Private Image Authenticated vs Unauthenticated
+    print("\n4. Testing private authenticated image endpoint...")
+    image_url = f"{BASE_URL}{scan_data['image_path']}"
+    
+    # 4a. Fetch as owner (Should return 200 OK)
+    owner_img_resp = client.get(image_url, headers=headers)
+    if owner_img_resp.status_code != 200:
+        print(f"❌ Failed to fetch image as owner: {owner_img_resp.status_code}")
+        sys.exit(1)
+    print("✅ Successfully fetched private image as the owner (HTTP 200 OK).")
+
+    # 4b. Fetch without token (Should return 401 Unauthorized)
+    anon_img_resp = client.get(image_url)
+    if anon_img_resp.status_code != 401:
+        print(f"❌ Failed security check: anonymous fetch returned {anon_img_resp.status_code}")
+        sys.exit(1)
+    print("✅ Secure: Anonymous request blocked (HTTP 401 Unauthorized).")
+
+    # 5. Verification: Non-plant/screenshot image safety rejection
+    print("\n5. Testing non-plant image rejection safety check...")
+    unrelated_img_path = "/Users/pranav/.gemini/antigravity-ide/brain/61db1804-3357-4b81-918c-4dd50b0df21e/crop_selected_tomatoes_1781181655462.png"
+    with open(unrelated_img_path, "rb") as f:
+        unrelated_img = f.read()
+    
+    bad_files = {"file": ("ui_screenshot.png", io.BytesIO(unrelated_img), "image/png")}
+    bad_scan_resp = client.post(
+        f"{BASE_URL}/disease/scan",
+        headers=headers,
+        files=bad_files,
+        timeout=30.0
+    )
+    if bad_scan_resp.status_code == 400:
+        print("✅ Success: Unrelated/non-plant image correctly rejected by backend!")
+        print(f"   Received Warning Message: {bad_scan_resp.json()['detail']}")
+    else:
+        print(f"❌ Safety check failed: Non-plant image was not rejected. Code: {bad_scan_resp.status_code} - {bad_scan_resp.text}")
+        sys.exit(1)
+
+    # 6. Verification: Validation checks (File format / Size checks)
+    print("\n6. Testing file extension and size validation limits...")
+    
+    # 6a. Format validation check (gif should fail with 400)
+    gif_files = {"file": ("test.gif", io.BytesIO(b"fake gif bytes"), "image/gif")}
+    gif_resp = client.post(f"{BASE_URL}/disease/scan", headers=headers, files=gif_files)
+    if gif_resp.status_code == 400:
+        print("✅ Success: Invalid file extension rejected (HTTP 400).")
+    else:
+        print(f"❌ Format validation check failed, status: {gif_resp.status_code}")
+        sys.exit(1)
+
+    # 6b. Size validation check (>5MB should fail with 400)
+    huge_data = b"0" * (5 * 1024 * 1024 + 1024)
+    huge_files = {"file": ("large.png", io.BytesIO(huge_data), "image/png")}
+    huge_resp = client.post(f"{BASE_URL}/disease/scan", headers=headers, files=huge_files)
+    if huge_resp.status_code == 400:
+        print("✅ Success: Over-sized image file (>5MB) rejected (HTTP 400).")
+    else:
+        print(f"❌ Size validation check failed, status: {huge_resp.status_code}")
+        sys.exit(1)
+
+    # 7. Fetch History
+    print("\n7. Fetching diagnostic scan history...")
     history_resp = client.get(f"{BASE_URL}/disease/scans", headers=headers)
     if history_resp.status_code != 200:
         print(f"❌ Failed to fetch scan history: {history_resp.status_code}")
@@ -94,24 +155,24 @@ def verify_sprint4():
     assert len(history) >= 1
     print(f"✅ Historical scan database list checked (Found {len(history)} records).")
 
-    # 5. Fetch Detail
-    print("\n5. Retrieving scan record details...")
+    # 8. Fetch Detail
+    print("\n8. Retrieving scan record details...")
     detail_resp = client.get(f"{BASE_URL}/disease/scans/{scan_id}", headers=headers)
     if detail_resp.status_code != 200:
         print(f"❌ Failed to fetch scan details: {detail_resp.status_code}")
         sys.exit(1)
     print("✅ Detailed scan report retrieved successfully!")
 
-    # 6. Delete Scan
-    print("\n6. Cleaning up scan record...")
+    # 9. Delete Scan
+    print("\n9. Cleaning up scan record...")
     del_resp = client.delete(f"{BASE_URL}/disease/scans/{scan_id}", headers=headers)
     if del_resp.status_code != 204:
         print(f"❌ Deletion failed: {del_resp.status_code}")
         sys.exit(1)
     print("✅ Scan record deleted successfully from database and server disk storage.")
 
-    # 7. Check 404
-    print("\n7. Double checking deletion status...")
+    # 10. Check 404
+    print("\n10. Double checking deletion status...")
     check_resp = client.get(f"{BASE_URL}/disease/scans/{scan_id}", headers=headers)
     if check_resp.status_code != 404:
         print(f"❌ Deletion verification check failed, scan still exists: {check_resp.status_code}")

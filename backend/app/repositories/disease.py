@@ -9,6 +9,7 @@ class DiseaseScanRepository:
         db: Session,
         farmer_id: int,
         image_path: str,
+        diagnosis_type: str,
         disease_name: str,
         confidence: float,
         severity: str,
@@ -20,6 +21,7 @@ class DiseaseScanRepository:
         db_obj = DiseaseScan(
             farmer_id=farmer_id,
             image_path=image_path,
+            diagnosis_type=diagnosis_type,
             disease_name=disease_name,
             confidence=confidence,
             severity=severity,

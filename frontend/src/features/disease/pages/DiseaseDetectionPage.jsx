@@ -1,7 +1,66 @@
 import React, { useState, useEffect } from "react";
 import api from "../../../services/api";
 
-const API_HOST = "http://localhost:8000"; // Host for local static files
+// Reusable component to fetch and render authenticated images securely
+const AuthImage = ({ src, alt, style }) => {
+  const [blobUrl, setBlobUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!src) return;
+
+    // Direct object URL preview for local file uploads
+    if (src.startsWith("blob:")) {
+      setBlobUrl(src);
+      return;
+    }
+
+    let isMounted = true;
+    setLoading(true);
+
+    const fetchImage = async () => {
+      try {
+        const response = await api.get(src, { responseType: "blob" });
+        if (isMounted) {
+          const url = URL.createObjectURL(response.data);
+          setBlobUrl(url);
+        }
+      } catch (err) {
+        console.error("Failed to load authenticated image:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchImage();
+
+    return () => {
+      isMounted = false;
+      if (blobUrl && !src.startsWith("blob:")) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [src]);
+
+  if (loading) {
+    return (
+      <div style={{
+        ...style,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "var(--bg-app)",
+        border: "1px solid var(--border-light)",
+        color: "var(--text-secondary)",
+        fontSize: "0.75rem"
+      }}>
+        <span className="dot-spinner"></span> Loading image...
+      </div>
+    );
+  }
+
+  return <img src={blobUrl || ""} alt={alt} style={style} />;
+};
 
 const DiseaseDetectionPage = () => {
   const [history, setHistory] = useState([]);
@@ -14,7 +73,6 @@ const DiseaseDetectionPage = () => {
   const [error, setError] = useState("");
   const [dragActive, setDragActive] = useState(false);
 
-  // Fetch scan history on mount
   const fetchHistory = async () => {
     setLoadingHistory(true);
     try {
@@ -35,14 +93,12 @@ const DiseaseDetectionPage = () => {
     setError("");
     if (!file) return;
 
-    // Validate type
     const validTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!validTypes.includes(file.type)) {
       setError("Please select a valid image file (JPEG, PNG, or WEBP).");
       return;
     }
 
-    // Validate size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("File size exceeds 5MB limit. Please upload a smaller image.");
       return;
@@ -50,7 +106,7 @@ const DiseaseDetectionPage = () => {
 
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
-    setActiveScan(null); // Clear active scan when new file is chosen
+    setActiveScan(null);
   };
 
   const handleFileChange = (e) => {
@@ -96,8 +152,6 @@ const DiseaseDetectionPage = () => {
       const newScan = response.data;
       setActiveScan(newScan);
       setHistory((prev) => [newScan, ...prev]);
-      
-      // Reset upload selection
       setSelectedFile(null);
       setPreviewUrl("");
     } catch (err) {
@@ -130,7 +184,7 @@ const DiseaseDetectionPage = () => {
       }
     } catch (err) {
       console.error("Failed to delete scan:", err);
-      alert("Failed to delete the scan diagnostics record.");
+      alert("Failed to delete the scan record.");
     }
   };
 
@@ -147,10 +201,21 @@ const DiseaseDetectionPage = () => {
     }
   };
 
+  const getDiagnosisBadge = (type) => {
+    switch (type.toLowerCase()) {
+      case "healthy":
+        return { label: "Healthy Plant", color: "#38a169", bg: "#f0fff4", border: "#c6f6d5", icon: "🟢" };
+      case "deficiency":
+        return { label: "Nutrient Deficiency", color: "#dd6b20", bg: "#fffaf0", border: "#fbd38d", icon: "🟡" };
+      default:
+        return { label: "Plant Disease", color: "#e53e3e", bg: "#fff5f5", border: "#f8b4b4", icon: "🔴" };
+    }
+  };
+
   return (
     <div style={{
       display: "grid",
-      gridTemplateColumns: "1fr 320px",
+      gridTemplateColumns: "1fr 340px",
       gap: "24px",
       padding: "32px",
       height: "calc(100vh - 100px)",
@@ -162,10 +227,10 @@ const DiseaseDetectionPage = () => {
         {/* Upload Container */}
         <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)" }}>
           <h3 style={{ fontSize: "1.2rem", marginBottom: "16px", color: "var(--text-primary)" }}>
-            📸 Upload Crop Leaf Photo
+            📸 Upload Crop / Leaf Photo
           </h3>
           <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "20px" }}>
-            Select or drag a clear, close-up photo of the infected crop leaf. Gemini Vision will identify symptoms, suggest chemical or organic treatments, and list prevention strategies.
+            Select or drag a clear photo of the leaf or crop. Gemini Vision will determine whether the plant is healthy, has a nutrient deficiency, or is infected by a disease.
           </p>
 
           <form onSubmit={handleScanSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -194,9 +259,9 @@ const DiseaseDetectionPage = () => {
               />
               
               <label htmlFor="leaf-file-upload" style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
-                <span style={{ fontSize: "3rem" }}>🍃</span>
+                <span style={{ fontSize: "3rem" }}>🌿</span>
                 <span style={{ fontWeight: "600", color: "var(--text-primary)" }}>
-                  Click to select or drag leaf image here
+                  Click to select or drag image here
                 </span>
                 <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
                   Supports JPEG, PNG, WEBP (Max 5MB)
@@ -212,7 +277,7 @@ const DiseaseDetectionPage = () => {
 
             {previewUrl && (
               <div className="glass" style={{ padding: "20px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
-                <img 
+                <AuthImage 
                   src={previewUrl} 
                   alt="Crop leaf preview" 
                   style={{
@@ -228,13 +293,13 @@ const DiseaseDetectionPage = () => {
                     type="submit" 
                     className="btn btn-primary" 
                     disabled={scanning}
-                    style={{ minWidth: "160px" }}
+                    style={{ minWidth: "180px" }}
                   >
                     {scanning ? (
                       <>
-                        <span className="dot-spinner"></span> Analyzing Image...
+                        <span className="dot-spinner"></span> Diagnosing...
                       </>
-                    ) : "🔍 Analyze Crop Leaf"}
+                    ) : "🔍 Start AI Diagnosis"}
                   </button>
                   <button 
                     type="button" 
@@ -258,7 +323,7 @@ const DiseaseDetectionPage = () => {
           <div className="glass animate-fade-in" style={{
             padding: "32px",
             borderRadius: "var(--radius-md)",
-            borderLeft: `5px solid ${getSeverityStyles(activeScan.severity).color}`,
+            borderLeft: `5px solid ${getDiagnosisBadge(activeScan.diagnosis_type).color}`,
             display: "flex",
             flexDirection: "column",
             gap: "24px"
@@ -266,32 +331,55 @@ const DiseaseDetectionPage = () => {
             {/* Header info */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
               <div>
-                <span style={{
-                  fontSize: "0.75rem",
-                  fontWeight: "700",
-                  textTransform: "uppercase",
-                  padding: "4px 10px",
-                  borderRadius: "var(--radius-full)",
-                  backgroundColor: getSeverityStyles(activeScan.severity).bg,
-                  color: getSeverityStyles(activeScan.severity).color,
-                  border: `1px solid ${getSeverityStyles(activeScan.severity).border}`,
-                  display: "inline-block",
-                  marginBottom: "8px"
-                }}>
-                  {getSeverityStyles(activeScan.severity).badgeText}
-                </span>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+                  {/* Diagnosis Type Badge */}
+                  <span style={{
+                    fontSize: "0.75rem",
+                    fontWeight: "700",
+                    textTransform: "uppercase",
+                    padding: "4px 10px",
+                    borderRadius: "var(--radius-full)",
+                    backgroundColor: getDiagnosisBadge(activeScan.diagnosis_type).bg,
+                    color: getDiagnosisBadge(activeScan.diagnosis_type).color,
+                    border: `1px solid ${getDiagnosisBadge(activeScan.diagnosis_type).border}`,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}>
+                    {getDiagnosisBadge(activeScan.diagnosis_type).icon} {getDiagnosisBadge(activeScan.diagnosis_type).label}
+                  </span>
+                  
+                  {/* Severity Badge */}
+                  {activeScan.diagnosis_type.toLowerCase() !== "healthy" && (
+                    <span style={{
+                      fontSize: "0.75rem",
+                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      padding: "4px 10px",
+                      borderRadius: "var(--radius-full)",
+                      backgroundColor: getSeverityStyles(activeScan.severity).bg,
+                      color: getSeverityStyles(activeScan.severity).color,
+                      border: `1px solid ${getSeverityStyles(activeScan.severity).border}`,
+                      display: "inline-block"
+                    }}>
+                      {getSeverityStyles(activeScan.severity).badgeText}
+                    </span>
+                  )}
+                </div>
+
                 <h2 style={{ fontSize: "1.8rem", color: "var(--text-primary)", fontWeight: "800" }}>
                   {activeScan.disease_name}
                 </h2>
+                
                 <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "4px" }}>
-                  Diagnosed on {new Date(activeScan.created_at).toLocaleString()} | Confidence: <strong>{(activeScan.confidence * 100).toFixed(0)}%</strong>
+                  Scanned on {new Date(activeScan.created_at).toLocaleString()} | Match Confidence: <strong>{(activeScan.confidence * 100).toFixed(0)}%</strong>
                 </p>
               </div>
 
-              {/* Uploaded Leaf view */}
+              {/* Secure AuthImage display */}
               <div style={{ position: "relative" }}>
-                <img 
-                  src={activeScan.image_path.startsWith("http") ? activeScan.image_path : `${API_HOST}${activeScan.image_path}`}
+                <AuthImage 
+                  src={activeScan.image_path}
                   alt={activeScan.disease_name}
                   style={{
                     width: "120px",
@@ -322,7 +410,7 @@ const DiseaseDetectionPage = () => {
             {/* Treatment recommendations */}
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "1rem", fontWeight: "700", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                💊 Recommended Treatments
+                💊 Recommended Treatments / Core Actions
               </h4>
               <ul style={{ paddingLeft: "20px", fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
                 {activeScan.treatment.map((pt, i) => (
@@ -366,11 +454,11 @@ const DiseaseDetectionPage = () => {
             </div>
           ) : history.length === 0 ? (
             <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-              No crop leaves scanned yet. Upload above to diagnose!
+              No crops diagnosed yet. Upload an image to start.
             </div>
           ) : (
             history.map((scan) => {
-              const styles = getSeverityStyles(scan.severity);
+              const badge = getDiagnosisBadge(scan.diagnosis_type);
               const isSelected = activeScan && activeScan.id === scan.id;
               
               return (
@@ -384,14 +472,14 @@ const DiseaseDetectionPage = () => {
                     padding: "10px",
                     borderRadius: "var(--radius-sm)",
                     cursor: "pointer",
-                    borderLeft: `3px solid ${styles.color}`,
+                    borderLeft: `3px solid ${badge.color}`,
                     backgroundColor: isSelected ? "var(--primary-soft)" : "var(--bg-card)",
                     transition: "var(--transition-bounce)",
                     position: "relative"
                   }}
                 >
-                  <img 
-                    src={scan.image_path.startsWith("http") ? scan.image_path : `${API_HOST}${scan.image_path}`}
+                  <AuthImage 
+                    src={scan.image_path}
                     alt={scan.disease_name}
                     style={{
                       width: "48px",
@@ -411,8 +499,8 @@ const DiseaseDetectionPage = () => {
                     }}>
                       {scan.disease_name}
                     </h4>
-                    <span style={{ fontSize: "0.7rem", color: styles.color, fontWeight: "600", display: "block", marginTop: "2px" }}>
-                      {(scan.confidence * 100).toFixed(0)}% Match | {scan.severity}
+                    <span style={{ fontSize: "0.7rem", color: badge.color, fontWeight: "600", display: "block", marginTop: "2px" }}>
+                      {badge.label} | {(scan.confidence * 100).toFixed(0)}%
                     </span>
                     <span style={{ fontSize: "0.65rem", color: "var(--text-secondary)", display: "block", marginTop: "1px" }}>
                       {new Date(scan.created_at).toLocaleDateString()}

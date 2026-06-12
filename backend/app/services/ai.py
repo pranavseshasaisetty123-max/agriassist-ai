@@ -249,6 +249,7 @@ class AIService:
             # Return demo mock response
             return {
                 "disease_name": "[DEMO] Tomato Late Blight",
+                "diagnosis_type": "disease",
                 "confidence": 0.88,
                 "severity": "High",
                 "symptoms": [
@@ -270,6 +271,7 @@ class AIService:
         from pydantic import BaseModel
         
         class AIDiseaseAnalysisSchema(BaseModel):
+            diagnosis_type: str  # "disease", "deficiency", "healthy", or "invalid"
             disease_name: str
             confidence: float
             severity: str  # "Low", "Medium", or "High"
@@ -278,10 +280,16 @@ class AIService:
             preventive_measures: List[str]
 
         prompt = (
-            "Identify any plant disease, nutritional deficiency, or pest damage visible on this crop leaf image.\n"
-            "Provide your findings in the requested structured JSON format, detailing symptoms observed, "
-            "treatment recommendations, and preventive measures. If the leaf is completely healthy, set 'disease_name' "
-            "to 'Healthy' and explain that in the symptoms/treatment fields."
+            "Analyze the uploaded image of a crop leaf or plant.\n"
+            "1. Evaluate if the image is a plant or crop leaf. If the image is unrelated to plants/agriculture, is a non-plant object, "
+            "or is a user interface screenshot, set 'diagnosis_type' to 'invalid' and 'disease_name' to 'Invalid Image'.\n"
+            "2. If it is a plant, classify it into one of the following 'diagnosis_type' categories:\n"
+            "   - 'disease': Plant shows symptoms of pathogens, fungi, mold, bacteria, or virus infection.\n"
+            "   - 'deficiency': Plant shows signs of nutrient deficiency (e.g. chlorosis, purple tint, stunted growth).\n"
+            "   - 'healthy': Plant appears healthy with no visual symptoms of disease or deficiency.\n"
+            "3. Fill in the 'disease_name' (e.g., 'Tomato Late Blight', 'Iron Deficiency', or 'Healthy Wheat Leaf').\n"
+            "4. Provide confidence (float between 0.0 and 1.0) and severity ('Low', 'Medium', or 'High' - use 'Low' for healthy or invalid images).\n"
+            "5. Provide symptoms observed, recommended treatment points, and preventive measures as lists of strings."
         )
 
         max_retries = 2
@@ -302,7 +310,8 @@ class AIService:
                         response_schema=AIDiseaseAnalysisSchema,
                         system_instruction=(
                             "You are AgriAssist AI, a professional agricultural scientist, botanist, and plant pathologist. "
-                            "Analyze leaf images to detect plant issues accurately and recommend practical treatments."
+                            "Analyze leaf/plant images to detect diseases, nutrient deficiencies, or confirm health. "
+                            "Accurately flag non-plant or unrelated inputs as 'invalid'."
                         )
                     )
                 )

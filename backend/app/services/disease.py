@@ -13,7 +13,7 @@ logger = logging.getLogger("agriassist.disease_service")
 
 # Allowed MIME types
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
-UPLOAD_DIR = "static/uploads"
+UPLOAD_DIR = "uploads"
 
 
 class DiseaseDetectionService:
@@ -34,16 +34,14 @@ class DiseaseDetectionService:
         except Exception:
             preventive_measures = [scan.preventive_measures] if scan.preventive_measures else []
 
-        # Convert relative path to absolute or client-accessible URL path
-        # The frontend expects to read it from /static/uploads/{filename}
-        # We store relative path like static/uploads/filename.jpg, so we can return it as /static/uploads/filename.jpg
-        # Or we can just strip the static prefix if necessary, but returning '/static/uploads/filename' is standard.
-        image_url = f"/static/uploads/{os.path.basename(scan.image_path)}"
+        # Enforce authenticated image delivery URL path
+        image_url = f"/disease/scans/{scan.id}/image"
 
         return {
             "id": scan.id,
             "farmer_id": scan.farmer_id,
             "image_path": image_url,
+            "diagnosis_type": scan.diagnosis_type,
             "disease_name": scan.disease_name,
             "confidence": scan.confidence,
             "severity": scan.severity,
@@ -56,14 +54,22 @@ class DiseaseDetectionService:
     def create_scan(
         self, db: Session, farmer_id: int, file_bytes: bytes, filename: str, content_type: str
     ) -> Dict[str, Any]:
-        """Save upload file, trigger Gemini vision query, and save structured results to DB."""
+        """Save upload file privately, validate inputs/types, query Gemini Vision, and persist results."""
+        # Validate format
         if content_type not in ALLOWED_IMAGE_TYPES:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid file type {content_type}. Only JPEG, PNG, and WEBP images are supported."
             )
 
-        # Ensure upload folder exists
+        # Validate size (max 5MB)
+        if len(file_bytes) > 5 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File size exceeds the maximum allowed limit of 5 MB."
+            )
+
+        # Ensure private uploads folder exists
         os.makedirs(UPLOAD_DIR, exist_ok=True)
 
         # Generate unique safe filename
@@ -73,7 +79,7 @@ class DiseaseDetectionService:
         safe_filename = f"{uuid.uuid4().hex}{ext}"
         dest_path = os.path.join(UPLOAD_DIR, safe_filename)
 
-        # Save file to disk
+        # Save file privately to disk
         try:
             with open(dest_path, "wb") as f:
                 f.write(file_bytes)
@@ -94,7 +100,16 @@ class DiseaseDetectionService:
                 os.remove(dest_path)
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Gemini plant disease analysis is temporarily unavailable. Please try again later."
+                detail="Gemini crop leaf analysis is temporarily unavailable. Please try again later."
+            )
+
+        # Check if Gemini flagged the image as invalid
+        if ai_data.get("diagnosis_type") == "invalid":
+            if os.path.exists(dest_path):
+                os.remove(dest_path)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The uploaded image does not appear to be a crop leaf or plant. Please upload a clear photo of a plant leaf."
             )
 
         # Save scan to DB
@@ -107,6 +122,7 @@ class DiseaseDetectionService:
                 db=db,
                 farmer_id=farmer_id,
                 image_path=dest_path,
+                diagnosis_type=ai_data.get("diagnosis_type", "disease"),
                 disease_name=ai_data.get("disease_name", "Unknown Disease"),
                 confidence=ai_data.get("confidence", 0.0),
                 severity=ai_data.get("severity", "Medium"),
@@ -121,7 +137,7 @@ class DiseaseDetectionService:
                 os.remove(dest_path)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to save crop disease scan diagnostic record."
+                detail="Failed to save crop diagnostic record."
             )
 
     def get_scan(self, db: Session, farmer_id: int, scan_id: int) -> Dict[str, Any]:
@@ -130,7 +146,7 @@ class DiseaseDetectionService:
         if not scan:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Plant disease scan not found."
+                detail="Crop diagnostic scan not found."
             )
         if scan.farmer_id != farmer_id:
             raise HTTPException(
@@ -138,6 +154,21 @@ class DiseaseDetectionService:
                 detail="Access denied for this scan."
             )
         return self._format_scan_dict(scan)
+
+    def get_scan_model(self, db: Session, farmer_id: int, scan_id: int) -> DiseaseScan:
+        """Fetch raw DB model after verifying ownership."""
+        scan = disease_scan_repo.get_by_id(db, scan_id)
+        if not scan:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Crop diagnostic scan not found."
+            )
+        if scan.farmer_id != farmer_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied for this scan."
+            )
+        return scan
 
     def list_scans(self, db: Session, farmer_id: int, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
         """List historical scan records for a farmer."""
@@ -150,7 +181,7 @@ class DiseaseDetectionService:
         if not scan:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Plant disease scan not found."
+                detail="Crop diagnostic scan not found."
             )
         if scan.farmer_id != farmer_id:
             raise HTTPException(

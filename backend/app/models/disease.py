@@ -9,6 +9,7 @@ class DiseaseScan(Base):
     id = Column(Integer, primary_key=True, index=True)
     farmer_id = Column(Integer, ForeignKey("farmers.id", ondelete="CASCADE"), nullable=False)
     image_path = Column(String(500), nullable=False)
+    diagnosis_type = Column(String(100), nullable=False)
     disease_name = Column(String(255), nullable=False)
     confidence = Column(Float, nullable=False)
     severity = Column(String(50), nullable=False)

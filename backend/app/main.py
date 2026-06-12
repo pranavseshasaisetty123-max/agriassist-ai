@@ -10,10 +10,6 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# Mount static directory for uploaded leaf images
-os.makedirs("static/uploads", exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 # Set CORS origins
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(

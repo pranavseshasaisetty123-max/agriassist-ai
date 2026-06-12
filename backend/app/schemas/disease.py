@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class DiseaseScanBase(BaseModel):
     image_path: str
+    diagnosis_type: str
     disease_name: str
     confidence: float
     severity: str

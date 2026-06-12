@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, Query, File, UploadFile, status
+from fastapi import APIRouter, Depends, Query, File, UploadFile, status, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
+import os
 from app.api.deps import get_current_farmer
 from app.core.database import get_db
 from app.models.farmer import Farmer
@@ -50,6 +52,33 @@ def get_scan(
     return disease_detection_service.get_scan(
         db=db, farmer_id=current_farmer.id, scan_id=scan_id
     )
+
+
+@router.get("/scans/{scan_id}/image")
+def get_scan_image(
+    scan_id: int,
+    db: Session = Depends(get_db),
+    current_farmer: Farmer = Depends(get_current_farmer)
+):
+    """Securely stream crop leaf image for authenticated owners."""
+    scan = disease_detection_service.get_scan_model(
+        db=db, farmer_id=current_farmer.id, scan_id=scan_id
+    )
+    if not scan.image_path or not os.path.exists(scan.image_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diagnostic image file not found on the server."
+        )
+
+    # Determine correct media type
+    ext = os.path.splitext(scan.image_path)[1].lower()
+    media_type = "image/jpeg"
+    if ext == ".png":
+        media_type = "image/png"
+    elif ext == ".webp":
+        media_type = "image/webp"
+
+    return FileResponse(scan.image_path, media_type=media_type)
 
 
 @router.delete("/scans/{scan_id}", status_code=status.HTTP_204_NO_CONTENT)

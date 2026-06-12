@@ -240,5 +240,85 @@ class AIService:
                 time.sleep(delay)
                 delay *= 2
 
+    def analyze_crop_image(self, img_bytes: bytes, mime_type: str) -> dict:
+        """
+        Analyze a crop leaf image using Gemini Vision (multimodal) capabilities.
+        Detects disease or deficiency and returns structured information.
+        """
+        if not self.enabled or not self.client:
+            # Return demo mock response
+            return {
+                "disease_name": "[DEMO] Tomato Late Blight",
+                "confidence": 0.88,
+                "severity": "High",
+                "symptoms": [
+                    "[DEMO] Dark water-soaked spots on leaves",
+                    "[DEMO] White fungal growth on underside of leaves in humid conditions"
+                ],
+                "treatment": [
+                    "[DEMO] Apply copper-based fungicides immediately",
+                    "[DEMO] Remove and destroy infected plant debris"
+                ],
+                "preventive_measures": [
+                    "[DEMO] Use certified disease-free seeds",
+                    "[DEMO] Ensure adequate plant spacing for airflow",
+                    "[DEMO] Avoid overhead watering"
+                ]
+            }
+
+        import time
+        from pydantic import BaseModel
+        
+        class AIDiseaseAnalysisSchema(BaseModel):
+            disease_name: str
+            confidence: float
+            severity: str  # "Low", "Medium", or "High"
+            symptoms: List[str]
+            treatment: List[str]
+            preventive_measures: List[str]
+
+        prompt = (
+            "Identify any plant disease, nutritional deficiency, or pest damage visible on this crop leaf image.\n"
+            "Provide your findings in the requested structured JSON format, detailing symptoms observed, "
+            "treatment recommendations, and preventive measures. If the leaf is completely healthy, set 'disease_name' "
+            "to 'Healthy' and explain that in the symptoms/treatment fields."
+        )
+
+        max_retries = 2
+        delay = 1.0
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[
+                        types.Part.from_bytes(
+                            data=img_bytes,
+                            mime_type=mime_type
+                        ),
+                        prompt
+                    ],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=AIDiseaseAnalysisSchema,
+                        system_instruction=(
+                            "You are AgriAssist AI, a professional agricultural scientist, botanist, and plant pathologist. "
+                            "Analyze leaf images to detect plant issues accurately and recommend practical treatments."
+                        )
+                    )
+                )
+
+                if response.text:
+                    import json
+                    return json.loads(response.text)
+                else:
+                    raise ValueError("Empty response received from Gemini Vision model.")
+            except Exception as e:
+                if attempt == max_retries:
+                    logger.error(f"Gemini crop image analysis failed after {max_retries} retries: {e}", exc_info=True)
+                    raise e
+                logger.warning(f"Gemini API request failed on attempt {attempt+1}. Retrying in {delay}s... Error: {e}")
+                time.sleep(delay)
+                delay *= 2
+
 
 ai_service = AIService()

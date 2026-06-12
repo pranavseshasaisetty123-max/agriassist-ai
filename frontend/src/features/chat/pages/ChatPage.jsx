@@ -3,6 +3,7 @@ import { useAuth } from "../../../context/AuthContext";
 import api from "../../../services/api";
 import DashboardOverview from "../../dashboard/pages/DashboardOverview";
 import SoilAnalyzerPage from "../../soil/pages/SoilAnalyzerPage";
+import DiseaseDetectionPage from "../../disease/pages/DiseaseDetectionPage";
 import "./Chat.css";
 
 const ChatPage = () => {
@@ -150,6 +151,8 @@ const ChatPage = () => {
         return "AgriAssist Dashboard";
       case "soil":
         return "Soil Diagnostics Center";
+      case "disease":
+        return "Plant Disease Diagnostics";
       case "chat":
         return sessions.find((s) => s.id === activeSessionId)?.title || "AI Consult Agent";
       default:
@@ -164,6 +167,8 @@ const ChatPage = () => {
         return `Welcome back, ${currentFarmer?.first_name || "Farmer"}`;
       case "soil":
         return "Log and analyze soil parameters";
+      case "disease":
+        return "Upload leaves to analyze issues";
       case "chat":
         return "AI Agronomist Active";
       default:
@@ -201,6 +206,16 @@ const ChatPage = () => {
           >
             <span className="session-icon">🧪</span>
             <span className="session-title-text">Soil Analyzer</span>
+          </div>
+          <div
+            className={`session-item-row ${activeTab === "disease" && !showProfileSettings ? "active-item" : ""}`}
+            onClick={() => {
+              setActiveTab("disease");
+              setShowProfileSettings(false);
+            }}
+          >
+            <span className="session-icon">🔍</span>
+            <span className="session-title-text">Disease Detection</span>
           </div>
           <div
             className={`session-item-row ${activeTab === "chat" && !showProfileSettings ? "active-item" : ""}`}
@@ -358,6 +373,9 @@ const ChatPage = () => {
         ) : activeTab === "soil" ? (
           /* Soil Health Analysis Tab */
           <SoilAnalyzerPage />
+        ) : activeTab === "disease" ? (
+          /* Disease Detection Page Tab */
+          <DiseaseDetectionPage />
         ) : (
           /* Consult Agent Chat Window Screen Tab */
           <div className="chat-window-wrapper">

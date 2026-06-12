@@ -1,12 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 from app.core.config import settings
-from app.api import auth, farmers, chat, soil, weather
+from app.api import auth, farmers, chat, soil, weather, disease
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+# Mount static directory for uploaded leaf images
+os.makedirs("static/uploads", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Set CORS origins
 if settings.BACKEND_CORS_ORIGINS:
@@ -24,6 +30,7 @@ app.include_router(farmers.router, prefix=f"{settings.API_V1_STR}/farmers", tags
 app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["chat"])
 app.include_router(soil.router, prefix=f"{settings.API_V1_STR}/soil", tags=["soil"])
 app.include_router(weather.router, prefix=f"{settings.API_V1_STR}/weather", tags=["weather"])
+app.include_router(disease.router, prefix=f"{settings.API_V1_STR}/disease", tags=["disease"])
 
 
 @app.get("/")

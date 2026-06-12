@@ -6,6 +6,7 @@ from app.models.weather import WeatherCache
 from app.models.disease import DiseaseScan
 from app.models.crop_recommendation import CropRecommendation
 from app.models.market_intelligence import MarketPrice, ProfitabilityAnalysis
+from app.models.yield_prediction import YieldPrediction
 
 __all__ = [
     "Base",
@@ -19,5 +20,7 @@ __all__ = [
     "DiseaseScan",
     "CropRecommendation",
     "MarketPrice",
-    "ProfitabilityAnalysis"
+    "ProfitabilityAnalysis",
+    "YieldPrediction"
 ]
+

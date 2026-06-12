@@ -496,6 +496,99 @@ class AIService:
             logger.error(f"Gemini trend explanation failed: {e}")
             return f"Unable to generate AI market analysis for {crop_name} at this time. Standard market indicators are positive."
 
+    def generate_yield_prediction(
+        self,
+        soil_metrics: dict,
+        weather_metrics: dict,
+        crop_name: str,
+        location: str
+    ) -> dict:
+        """
+        Invoke Gemini to predict crop yield per acre and return a structured response.
+        """
+        if not self.enabled or not self.client:
+            # Return demo mock response
+            return {
+                "predicted_yield": 850.5,
+                "confidence_score": 90,
+                "yield_category": "High",
+                "prediction_factors": [
+                    f"[DEMO] Optimal soil pH of {soil_metrics.get('ph')} supports strong root nutrient intake.",
+                    f"[DEMO] Adequate seasonal weather conditions in {location}.",
+                    "[DEMO] Mild temperatures forecasted for early stages of crop lifecycle."
+                ],
+                "recommendations": [
+                    "[DEMO] Add a nitrogen top dressing in Week 3 to maintain vegetative growth.",
+                    "[DEMO] Time your seeding schedule right before mild showers for higher seed establishment.",
+                    "[DEMO] Ensure drainage trenches are clear to prevent monsoon waterlogging."
+                ]
+            }
+
+        import time
+        from pydantic import BaseModel
+
+        class AIYieldPredictionSchema(BaseModel):
+            predicted_yield: float
+            confidence_score: int
+            yield_category: str  # "Low", "Medium", or "High"
+            prediction_factors: List[str]
+            recommendations: List[str]
+
+        prompt = (
+            f"You are a professional agricultural scientist, agronomist, and crop modeler.\n"
+            f"Predict the expected yield (in kg per acre) for the crop '{crop_name}' in the location '{location}'.\n\n"
+            f"Farmer Context:\n"
+            f"- Location: {location}\n"
+            f"- Crop to Plant: {crop_name}\n\n"
+            f"Soil Metrics:\n"
+            f"- pH: {soil_metrics.get('ph')}\n"
+            f"- Nitrogen: {soil_metrics.get('nitrogen')} mg/kg\n"
+            f"- Phosphorus: {soil_metrics.get('phosphorus')} mg/kg\n"
+            f"- Potassium: {soil_metrics.get('potassium')} mg/kg\n"
+            f"- Organic Matter: {soil_metrics.get('organic_matter')}% (if available)\n\n"
+            f"Weather Metrics:\n"
+            f"- Current: {weather_metrics.get('temp')}°C, {weather_metrics.get('condition')}\n"
+            f"- Forecast Summary: {weather_metrics.get('forecast_summary')}\n\n"
+            f"Instructions:\n"
+            f"1. Evaluate how the soil nutrients and upcoming weather variables affect the growth of '{crop_name}'.\n"
+            f"2. Estimate the expected yield in kg/acre (float) and confidence score (integer 0 to 100).\n"
+            f"3. Classify the yield category as 'Low', 'Medium', or 'High'.\n"
+            f"4. Provide 3-4 limiting or enabling prediction factors (list of strings).\n"
+            f"5. Suggest 3-4 actionable recommendations to improve the yield (list of strings)."
+        )
+
+        max_retries = 2
+        delay = 1.0
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=AIYieldPredictionSchema,
+                        system_instruction=(
+                            "You are AgriAssist AI, a professional agronomist and yield forecaster. "
+                            "Assess soil, location, weather, and crop variables to estimate expected yield, "
+                            "confidence level, category, contributing factors, and advice."
+                        )
+                    )
+                )
+
+                if response.text:
+                    import json
+                    return json.loads(response.text)
+                else:
+                    raise ValueError("Empty response received from Gemini.")
+            except Exception as e:
+                if attempt == max_retries:
+                    logger.error(f"Gemini yield prediction failed after {max_retries} retries: {e}", exc_info=True)
+                    raise e
+                logger.warning(f"Gemini API request failed on attempt {attempt+1}. Retrying in {delay}s... Error: {e}")
+                time.sleep(delay)
+                delay *= 2
+
 
 ai_service = AIService()
+
 

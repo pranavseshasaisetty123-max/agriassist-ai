@@ -4,9 +4,14 @@ import WeatherWidget from "../components/WeatherWidget";
 import ForecastWidget from "../components/ForecastWidget";
 import AdvisoryWidget from "../components/AdvisoryWidget";
 
-const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield }) => {
+const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner }) => {
   const [latestReport, setLatestReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Activities states
+  const [upcomingTask, setUpcomingTask] = useState(null);
+  const [overdueCount, setOverdueCount] = useState(0);
+  const [loadingTasks, setLoadingTasks] = useState(true);
 
   useEffect(() => {
     const fetchLatestReport = async () => {
@@ -21,7 +26,26 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
         setLoading(false);
       }
     };
+
+    const fetchActivities = async () => {
+      try {
+        const [upResp, overResp] = await Promise.all([
+          api.get("/farm-planner/tasks/upcoming?days=30"),
+          api.get("/farm-planner/tasks/overdue")
+        ]);
+        setOverdueCount(overResp.data.length);
+        if (upResp.data.length > 0) {
+          setUpcomingTask(upResp.data[0]);
+        }
+      } catch (err) {
+        console.error("Failed to load dashboard activities:", err);
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
+
     fetchLatestReport();
+    fetchActivities();
   }, []);
 
   const getNutrientStatus = (val, name) => {
@@ -159,6 +183,25 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           </div>
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Predict yield ➔</span>
         </div>
+
+        <div className="glass" style={{
+          padding: "24px",
+          borderRadius: "var(--radius-md)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          transition: "var(--transition-bounce)",
+          cursor: "pointer"
+        }} onClick={onNavigateToPlanner}>
+          <div>
+            <span style={{ fontSize: "2rem", marginBottom: "16px", display: "block" }}>📅</span>
+            <h3 style={{ fontSize: "1.2rem", marginBottom: "8px", color: "var(--text-primary)" }}>Farm Operations Planner</h3>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: "1.5", marginBottom: "16px" }}>
+              Schedule and manage day-to-day operations with an interactive, weather-aware crop activities calendar.
+            </p>
+          </div>
+          <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Plan operations ➔</span>
+        </div>
       </div>
 
       {/* 4. Split Status & Advisory Row */}
@@ -247,6 +290,121 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           )}
         </div>
 
+        {/* Upcoming Farm Activities Widget */}
+        <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column" }}>
+          <h2 style={{ fontSize: "1.25rem", marginBottom: "20px", color: "var(--text-primary)", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+            📅 Upcoming Farm Activities
+          </h2>
+
+          {loadingTasks ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="dot-spinner"></span> Loading schedule...
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1, justifyContent: "space-between" }}>
+              <div>
+                {overdueCount > 0 && (
+                  <div style={{
+                    padding: "10px 12px",
+                    backgroundColor: "#fff5f5",
+                    color: "#e53e3e",
+                    borderRadius: "var(--radius-sm)",
+                    fontSize: "0.8rem",
+                    borderLeft: "4px solid #e53e3e",
+                    marginBottom: "12px",
+                    fontWeight: "600"
+                  }}>
+                    ⚠️ {overdueCount} task(s) are overdue!
+                  </div>
+                )}
+
+                {upcomingTask ? (
+                  <div style={{
+                    padding: "16px",
+                    backgroundColor: "var(--bg-app)",
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--border-light)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px"
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: "0.65rem", fontWeight: "700", color: "var(--text-secondary)", textTransform: "uppercase" }}>
+                        Next Scheduled Activity
+                      </span>
+                      <span style={{
+                        fontSize: "0.65rem",
+                        fontWeight: "800",
+                        color: upcomingTask.priority === "high" ? "#e53e3e" : (upcomingTask.priority === "medium" ? "#dd6b20" : "#3182ce"),
+                        backgroundColor: upcomingTask.priority === "high" ? "#fff5f5" : (upcomingTask.priority === "medium" ? "#fffaf0" : "#ebf8ff"),
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        textTransform: "uppercase"
+                      }}>
+                        {upcomingTask.priority}
+                      </span>
+                    </div>
+
+                    <h4 style={{ fontSize: "1rem", fontWeight: "800", color: "var(--text-primary)", margin: 0 }}>
+                      {(() => {
+                        const categoryIcons = {
+                          land_preparation: "🚜",
+                          sowing: "🌱",
+                          irrigation: "💧",
+                          fertilizer: "🧪",
+                          monitoring: "🔍",
+                          disease_control: "🛡️",
+                          harvest: "🌾",
+                          post_harvest: "📦"
+                        };
+                        return categoryIcons[upcomingTask.category] || "📅";
+                      })()} {upcomingTask.title}
+                    </h4>
+
+                    <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: 0, lineHeight: "1.4" }}>
+                      {upcomingTask.description.length > 80 ? upcomingTask.description.substring(0, 80) + "..." : upcomingTask.description}
+                    </p>
+
+                    <div style={{ fontSize: "0.75rem", fontWeight: "700", color: "var(--primary)", marginTop: "4px" }}>
+                      ⏰ {(() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const plannedDate = new Date(upcomingTask.planned_date);
+                        plannedDate.setHours(0, 0, 0, 0);
+                        const diffTime = plannedDate - today;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        if (diffDays === 0) return "Today";
+                        if (diffDays === 1) return "Tomorrow";
+                        return `In ${diffDays} days (${new Date(upcomingTask.planned_date).toLocaleDateString()})`;
+                      })()}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: "24px 16px",
+                    textAlign: "center",
+                    backgroundColor: "rgba(56, 161, 105, 0.08)",
+                    border: "1px dashed rgba(56, 161, 105, 0.3)",
+                    color: "#38a169",
+                    borderRadius: "var(--radius-sm)",
+                    fontSize: "0.85rem"
+                  }}>
+                    ✅ All clear! No pending activities scheduled for the next 30 days.
+                  </div>
+                )}
+              </div>
+
+              <button
+                className="btn btn-primary"
+                onClick={onNavigateToPlanner}
+                style={{ width: "100%", height: "40px", marginTop: "12px" }}
+              >
+                View Farm Planner
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* AI Weather-Soil Smart Advisory */}
         <AdvisoryWidget />
       </div>
@@ -255,3 +413,4 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
 };
 
 export default DashboardOverview;
+

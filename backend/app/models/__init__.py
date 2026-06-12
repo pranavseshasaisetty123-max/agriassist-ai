@@ -7,6 +7,7 @@ from app.models.disease import DiseaseScan
 from app.models.crop_recommendation import CropRecommendation
 from app.models.market_intelligence import MarketPrice, ProfitabilityAnalysis
 from app.models.yield_prediction import YieldPrediction
+from app.models.farm_planner import FarmPlan, FarmTask
 
 __all__ = [
     "Base",
@@ -21,6 +22,8 @@ __all__ = [
     "CropRecommendation",
     "MarketPrice",
     "ProfitabilityAnalysis",
-    "YieldPrediction"
+    "YieldPrediction",
+    "FarmPlan",
+    "FarmTask"
 ]
 

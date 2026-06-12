@@ -588,7 +588,175 @@ class AIService:
                 time.sleep(delay)
                 delay *= 2
 
+    def generate_farm_plan(
+        self,
+        soil_metrics: dict,
+        weather_metrics: dict,
+        crop_name: str,
+        location: str
+    ) -> dict:
+        """
+        Invoke Gemini to generate a complete farm plan containing chronological
+        tasks and offsets relative to start date.
+        """
+        if not self.enabled or not self.client:
+            # Return demo mock response
+            return {
+                "expected_harvest_days": 90,
+                "tasks": [
+                    {
+                        "title": "[DEMO] Land Soil Tilling",
+                        "description": f"[DEMO] Deep plow the soil and add organic compost to prepare the field for sowing {crop_name}.",
+                        "planned_date_offset_days": 0,
+                        "priority": "medium",
+                        "category": "land_preparation"
+                    },
+                    {
+                        "title": f"[DEMO] {crop_name} Seed Sowing",
+                        "description": f"[DEMO] Sow high-quality certified {crop_name} seeds at recommended depth and spacing.",
+                        "planned_date_offset_days": 3,
+                        "priority": "high",
+                        "category": "sowing"
+                    },
+                    {
+                        "title": "[DEMO] First Irrigation",
+                        "description": "[DEMO] Irrigate lightly to ensure seed bed moisture is optimal for germination.",
+                        "planned_date_offset_days": 4,
+                        "priority": "high",
+                        "category": "irrigation"
+                    },
+                    {
+                        "title": "[DEMO] Weed Monitoring",
+                        "description": "[DEMO] Inspect rows for weed growth and perform manual removal if necessary.",
+                        "planned_date_offset_days": 10,
+                        "priority": "low",
+                        "category": "monitoring"
+                    },
+                    {
+                        "title": "[DEMO] Fertilizer Application",
+                        "description": f"[DEMO] Apply balanced fertilizer based on soil pH {soil_metrics.get('ph', 6.5)} and NPK values.",
+                        "planned_date_offset_days": 15,
+                        "priority": "medium",
+                        "category": "fertilizer"
+                    },
+                    {
+                        "title": "[DEMO] Disease Inspection",
+                        "description": f"[DEMO] Monitor foliage for common {crop_name} diseases or pest symptoms.",
+                        "planned_date_offset_days": 25,
+                        "priority": "medium",
+                        "category": "disease_control"
+                    },
+                    {
+                        "title": f"[DEMO] {crop_name} Harvest Preparation",
+                        "description": f"[DEMO] Prepare clean storage, packing crates, and harvesting tools for {crop_name}.",
+                        "planned_date_offset_days": 85,
+                        "priority": "medium",
+                        "category": "harvest"
+                    },
+                    {
+                        "title": f"[DEMO] Harvest {crop_name}",
+                        "description": f"[DEMO] Harvest the crop at peak maturity under favorable weather conditions.",
+                        "planned_date_offset_days": 90,
+                        "priority": "high",
+                        "category": "harvest"
+                    },
+                    {
+                        "title": "[DEMO] Post-Harvest Storage",
+                        "description": "[DEMO] Sort harvested yield by grade, place in cool dry storage, and transport to market.",
+                        "planned_date_offset_days": 91,
+                        "priority": "low",
+                        "category": "post_harvest"
+                    }
+                ]
+            }
+
+        import time
+        from pydantic import BaseModel
+        from typing import Literal
+
+        class AITaskSchema(BaseModel):
+            title: str
+            description: str
+            planned_date_offset_days: int
+            priority: Literal["low", "medium", "high"]
+            category: Literal[
+                "land_preparation",
+                "sowing",
+                "irrigation",
+                "fertilizer",
+                "monitoring",
+                "disease_control",
+                "harvest",
+                "post_harvest",
+            ]
+
+        class AIFarmPlanSchema(BaseModel):
+            expected_harvest_days: int
+            tasks: List[AITaskSchema]
+
+        prompt = (
+            f"You are a professional agricultural scientist, agronomist, and farm planner.\n"
+            f"Generate a complete chronological farming activity schedule (lifecycle) for growing '{crop_name}' in the location '{location}'.\n\n"
+            f"Farmer Context:\n"
+            f"- Location: {location}\n"
+            f"- Crop to Grow: {crop_name}\n\n"
+            f"Soil Metrics:\n"
+            f"- pH: {soil_metrics.get('ph')}\n"
+            f"- Nitrogen: {soil_metrics.get('nitrogen')} mg/kg\n"
+            f"- Phosphorus: {soil_metrics.get('phosphorus')} mg/kg\n"
+            f"- Potassium: {soil_metrics.get('potassium')} mg/kg\n"
+            f"- Organic Matter: {soil_metrics.get('organic_matter')}% (if available)\n\n"
+            f"Weather Context:\n"
+            f"- Current Weather: {weather_metrics.get('temp')}°C, {weather_metrics.get('condition')}\n"
+            f"- 7-Day Forecast Summary: {weather_metrics.get('forecast_summary')}\n\n"
+            f"Instructions:\n"
+            f"1. Generate a complete schedule of activities from land preparation up to post-harvest.\n"
+            f"2. Each activity must have a positive or zero 'planned_date_offset_days' (the number of days after the plan's start date that the activity should occur).\n"
+            f"3. Create tasks across these specific categories:\n"
+            f"   - 'land_preparation' (soil prep, plowing, composting before sowing)\n"
+            f"   - 'sowing' (sowing seeds)\n"
+            f"   - 'irrigation' (weather-aware watering intervals)\n"
+            f"   - 'fertilizer' (NPK/organic fertilization timings tailored to soil metrics)\n"
+            f"   - 'monitoring' (regular checks, weeding, growth checks)\n"
+            f"   - 'disease_control' (disease and pest scouting or preventative treatments)\n"
+            f"   - 'harvest' (harvesting preparations and execution)\n"
+            f"   - 'post_harvest' (sorting, packaging, storing, transport)\n"
+            f"4. Expected harvest date offset (in days) should be specified in 'expected_harvest_days'.\n"
+            f"5. Ensure tasks are tailored to the local weather context (e.g., suggest irrigation checks if forecast is hot/dry, adjust fertilizer schedules, etc.)."
+        )
+
+        max_retries = 2
+        delay = 1.0
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=AIFarmPlanSchema,
+                        system_instruction=(
+                            "You are AgriAssist AI, a professional agronomist and crop planner. "
+                            "Build logical, detailed, weather-aware, and soil-adapted crop operation schedules."
+                        )
+                    )
+                )
+
+                if response.text:
+                    import json
+                    return json.loads(response.text)
+                else:
+                    raise ValueError("Empty response received from Gemini.")
+            except Exception as e:
+                if attempt == max_retries:
+                    logger.error(f"Gemini farm plan generation failed after {max_retries} retries: {e}", exc_info=True)
+                    raise e
+                logger.warning(f"Gemini API request failed on attempt {attempt+1}. Retrying in {delay}s... Error: {e}")
+                time.sleep(delay)
+                delay *= 2
+
 
 ai_service = AIService()
+
 
 

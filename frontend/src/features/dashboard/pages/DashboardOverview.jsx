@@ -4,7 +4,7 @@ import WeatherWidget from "../components/WeatherWidget";
 import ForecastWidget from "../components/ForecastWidget";
 import AdvisoryWidget from "../components/AdvisoryWidget";
 
-const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner }) => {
+const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner, onNavigateToRisk }) => {
   const [latestReport, setLatestReport] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -12,6 +12,10 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
   const [upcomingTask, setUpcomingTask] = useState(null);
   const [overdueCount, setOverdueCount] = useState(0);
   const [loadingTasks, setLoadingTasks] = useState(true);
+
+  // Risk warnings states
+  const [riskAssessment, setRiskAssessment] = useState(null);
+  const [loadingRisk, setLoadingRisk] = useState(true);
 
   useEffect(() => {
     const fetchLatestReport = async () => {
@@ -44,8 +48,20 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
       }
     };
 
+    const fetchRiskAssessment = async () => {
+      try {
+        const response = await api.get("/risk-intelligence/warnings");
+        setRiskAssessment(response.data);
+      } catch (error) {
+        console.error("Failed to load risk warnings:", error);
+      } finally {
+        setLoadingRisk(false);
+      }
+    };
+
     fetchLatestReport();
     fetchActivities();
+    fetchRiskAssessment();
   }, []);
 
   const getNutrientStatus = (val, name) => {
@@ -201,6 +217,25 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
             </p>
           </div>
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Plan operations ➔</span>
+        </div>
+
+        <div className="glass" style={{
+          padding: "24px",
+          borderRadius: "var(--radius-md)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          transition: "var(--transition-bounce)",
+          cursor: "pointer"
+        }} onClick={onNavigateToRisk}>
+          <div>
+            <span style={{ fontSize: "2rem", marginBottom: "16px", display: "block" }}>🛡️</span>
+            <h3 style={{ fontSize: "1.2rem", marginBottom: "8px", color: "var(--text-primary)" }}>Risk Early Warning System</h3>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: "1.5", marginBottom: "16px" }}>
+              Get proactive alerts for disease outbreaks, pest hazards, and crop weather risks calculated using real-time field data.
+            </p>
+          </div>
+          <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Scan for risks ➔</span>
         </div>
       </div>
 
@@ -400,6 +435,117 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                 style={{ width: "100%", height: "40px", marginTop: "12px" }}
               >
                 View Farm Planner
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Risk Early Warning Widget */}
+        <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column" }}>
+          <h2 style={{ fontSize: "1.25rem", marginBottom: "20px", color: "var(--text-primary)", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+            🛡️ Risk Early Warnings
+          </h2>
+          
+          {loadingRisk ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="dot-spinner"></span> Loading risk index...
+            </div>
+          ) : !riskAssessment || !riskAssessment.alerts || riskAssessment.alerts.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <p style={{ marginBottom: "16px" }}>No risk warnings scanned or no active hazards.</p>
+              <button className="btn btn-primary" onClick={onNavigateToRisk}>
+                Scan for Risks
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1, justifyContent: "space-between" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "20px", borderBottom: "1px solid var(--border-light)", paddingBottom: "16px", marginBottom: "12px" }}>
+                  <div style={{ position: "relative", width: "70px", height: "70px" }}>
+                    <svg width="70" height="70" viewBox="0 0 70 70">
+                      <circle cx="35" cy="35" r="30" fill="none" stroke="var(--border-light)" strokeWidth="6" />
+                      <circle
+                        cx="35"
+                        cy="35"
+                        r="30"
+                        fill="none"
+                        stroke={(() => {
+                          const score = riskAssessment.overall_risk_score;
+                          if (score <= 30) return "#38a169";
+                          if (score <= 60) return "#dd6b20";
+                          if (score <= 80) return "#e53e3e";
+                          return "#822727";
+                        })()}
+                        strokeWidth="6"
+                        strokeDasharray="188.5"
+                        strokeDashoffset={188.5 - (riskAssessment.overall_risk_score / 100) * 188.5}
+                        strokeLinecap="round"
+                        transform="rotate(-90 35 35)"
+                        style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
+                      />
+                    </svg>
+                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontSize: "1.1rem", fontWeight: "900", color: "var(--text-primary)" }}>
+                        {riskAssessment.overall_risk_score}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "0.65rem", fontWeight: "700", color: "var(--text-secondary)", textTransform: "uppercase" }}>
+                      Overall Risk Index
+                    </span>
+                    <h4 style={{ fontSize: "1.1rem", fontWeight: "800", margin: "2px 0 0", color: (() => {
+                      const score = riskAssessment.overall_risk_score;
+                      if (score <= 30) return "#38a169";
+                      if (score <= 60) return "#dd6b20";
+                      if (score <= 80) return "#e53e3e";
+                      return "#822727";
+                    })() }}>
+                      {riskAssessment.risk_level}
+                    </h4>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {riskAssessment.alerts.slice(0, 2).map((alert, idx) => {
+                    const alertColors = {
+                      critical: { color: "#822727", bg: "#fff5f5" },
+                      high: { color: "#e53e3e", bg: "#fff5f5" },
+                      medium: { color: "#dd6b20", bg: "#fffaf0" },
+                      low: { color: "#3182ce", bg: "#ebf8ff" }
+                    };
+                    const colors = alertColors[alert.severity.toLowerCase()] || alertColors.low;
+                    return (
+                      <div key={idx} style={{
+                        padding: "8px 12px",
+                        backgroundColor: colors.bg,
+                        color: colors.color,
+                        borderRadius: "var(--radius-sm)",
+                        fontSize: "0.8rem",
+                        borderLeft: `4px solid ${colors.color}`,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}>
+                        <span style={{ fontWeight: "600" }}>{alert.alert_title}</span>
+                        <span style={{ fontSize: "0.75rem", opacity: 0.9 }}>{alert.probability}%</span>
+                      </div>
+                    );
+                  })}
+                  {riskAssessment.alerts.length > 2 && (
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "center", marginTop: "4px" }}>
+                      + {riskAssessment.alerts.length - 2} more risk alerts active
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <button
+                className="btn btn-primary"
+                onClick={onNavigateToRisk}
+                style={{ width: "100%", height: "40px", marginTop: "12px" }}
+              >
+                Scan & View Warnings
               </button>
             </div>
           )}

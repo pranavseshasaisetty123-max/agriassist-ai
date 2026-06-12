@@ -8,6 +8,7 @@ from app.models.crop_recommendation import CropRecommendation
 from app.models.market_intelligence import MarketPrice, ProfitabilityAnalysis
 from app.models.yield_prediction import YieldPrediction
 from app.models.farm_planner import FarmPlan, FarmTask
+from app.models.risk_alert import RiskAlert
 
 __all__ = [
     "Base",
@@ -24,6 +25,7 @@ __all__ = [
     "ProfitabilityAnalysis",
     "YieldPrediction",
     "FarmPlan",
-    "FarmTask"
+    "FarmTask",
+    "RiskAlert"
 ]
 

@@ -8,6 +8,7 @@ import CropRecommendationsPage from "../../crop-recommendations/pages/CropRecomm
 import MarketIntelligencePage from "../../market-intelligence/pages/MarketIntelligencePage";
 import YieldPredictionPage from "../../yield-prediction/pages/YieldPredictionPage";
 import FarmPlannerPage from "../../farm-planner/pages/FarmPlannerPage";
+import RiskWarningPage from "../../risk-intelligence/pages/RiskWarningPage";
 import "./Chat.css";
 
 const ChatPage = () => {
@@ -165,6 +166,8 @@ const ChatPage = () => {
         return "Crop Yield Prediction";
       case "farm-planner":
         return "Farm Planner & Scheduler";
+      case "risk-intelligence":
+        return "Risk Early Warning System";
       case "chat":
         return sessions.find((s) => s.id === activeSessionId)?.title || "AI Consult Agent";
       default:
@@ -189,6 +192,8 @@ const ChatPage = () => {
         return "Estimate expected crop returns per acre";
       case "farm-planner":
         return "AI crop activities timeline & operational calendar";
+      case "risk-intelligence":
+        return "Proactive AI pest, disease, and weather risk warnings";
       case "chat":
         return "AI Agronomist Active";
       default:
@@ -276,6 +281,16 @@ const ChatPage = () => {
           >
             <span className="session-icon">📅</span>
             <span className="session-title-text">Farm Planner</span>
+          </div>
+          <div
+            className={`session-item-row ${activeTab === "risk-intelligence" && !showProfileSettings ? "active-item" : ""}`}
+            onClick={() => {
+              setActiveTab("risk-intelligence");
+              setShowProfileSettings(false);
+            }}
+          >
+            <span className="session-icon">🛡️</span>
+            <span className="session-title-text">Risk Warnings</span>
           </div>
           <div
             className={`session-item-row ${activeTab === "chat" && !showProfileSettings ? "active-item" : ""}`}
@@ -432,6 +447,7 @@ const ChatPage = () => {
             onNavigateToMarket={() => setActiveTab("market-intelligence")}
             onNavigateToYield={() => setActiveTab("yield-prediction")}
             onNavigateToPlanner={() => setActiveTab("farm-planner")}
+            onNavigateToRisk={() => setActiveTab("risk-intelligence")}
           />
         ) : activeTab === "soil" ? (
           /* Soil Health Analysis Tab */
@@ -451,6 +467,9 @@ const ChatPage = () => {
         ) : activeTab === "farm-planner" ? (
           /* Farm Planner Dashboard Tab */
           <FarmPlannerPage />
+        ) : activeTab === "risk-intelligence" ? (
+          /* Risk Warning Dashboard Tab */
+          <RiskWarningPage onNavigateToPlanner={() => setActiveTab("farm-planner")} />
         ) : (
           /* Consult Agent Chat Window Screen Tab */
           <div className="chat-window-wrapper">

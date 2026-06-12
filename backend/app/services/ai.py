@@ -755,8 +755,153 @@ class AIService:
                 time.sleep(delay)
                 delay *= 2
 
+    def generate_risk_analysis(
+        self,
+        soil_metrics: dict,
+        weather_metrics: dict,
+        crop_names: List[str],
+        location: str
+    ) -> dict:
+        """
+        Invoke Gemini to analyze early pest & disease risks for active crops
+        based on forecast weather models and soil metrics.
+        """
+        if not self.enabled or not self.client:
+            # Build mock alerts dynamically based on crop plans
+            alerts = []
+            crops_str = ", ".join(crop_names) if crop_names else "Tomato"
+            primary_crop = crop_names[0] if crop_names else "Tomato"
+            
+            # 1. Disease Risk
+            alerts.append({
+                "title": f"[DEMO] Early Blight Warning",
+                "crop_name": primary_crop,
+                "category": "disease",
+                "risk_level": "high",
+                "probability": 75,
+                "description": f"[DEMO] Elevated humidity levels combined with warm nighttime temperatures create prime conditions for Early Blight fungal spore germination on {crops_str}.",
+                "prevention_steps": [
+                    "[DEMO] Apply copper-based preventative fungicide spray in early morning.",
+                    "[DEMO] Prune lower branches to improve airflow under the crop canopy."
+                ],
+                "monitoring_advice": [
+                    "[DEMO] Scout lower foliage twice a week for dark, concentric rings (target spots).",
+                    "[DEMO] Check stem bases for water-soaked lesions."
+                ]
+            })
+
+            # 2. Pest Risk
+            alerts.append({
+                "title": f"[DEMO] Sucking Pests Alert (Thrips & Aphids)",
+                "crop_name": primary_crop,
+                "category": "pest",
+                "risk_level": "medium",
+                "probability": 55,
+                "description": f"[DEMO] Warm, dry days in {location} are speeding up pest lifecycles. Risk of virus transmission is moderate.",
+                "prevention_steps": [
+                    "[DEMO] Install yellow sticky cards around fields to trap adult pests.",
+                    "[DEMO] Spray neem oil solution (1-2%) to suppress early colonizers."
+                ],
+                "monitoring_advice": [
+                    "[DEMO] Inspect underside of young foliage and flower clusters for active nymphs.",
+                    "[DEMO] Tap flowers over white paper to count pest populations."
+                ]
+            })
+
+            # 3. Weather Risk
+            alerts.append({
+                "title": "[DEMO] Heat Stress Risk",
+                "crop_name": primary_crop,
+                "category": "weather",
+                "risk_level": "low",
+                "probability": 30,
+                "description": f"[DEMO] Upcoming high temperature spikes in {location} forecast may induce flower drop or leaf curling.",
+                "prevention_steps": [
+                    "[DEMO] Maintain a consistent irrigation schedule during cooler evening hours.",
+                    "[DEMO] Ensure drainage channels are clear to prevent standing water during sudden hot spells."
+                ],
+                "monitoring_advice": [
+                    "[DEMO] Monitor foliage during peak sunlight hours for signs of wilting.",
+                    "[DEMO] Check soil moisture levels at root depth daily."
+                ]
+            })
+
+            return {"alerts": alerts}
+
+        import time
+        from pydantic import BaseModel, Field
+        from typing import Literal
+
+        class AIRiskAlertSchema(BaseModel):
+            title: str
+            crop_name: str
+            category: Literal["disease", "pest", "weather"]
+            risk_level: Literal["low", "medium", "high", "critical"]
+            probability: int = Field(..., ge=0, le=100)
+            description: str
+            prevention_steps: List[str]
+            monitoring_advice: List[str]
+
+        class AIRiskAnalysisListSchema(BaseModel):
+            alerts: List[AIRiskAlertSchema]
+
+        crops_str = ", ".join(crop_names)
+
+        prompt = (
+            f"You are a professional agricultural scientist, plant pathologist, and entomologist.\n"
+            f"Perform a proactive risk warning analysis for the crops currently grown in this field: '{crops_str}' at location '{location}'.\n\n"
+            f"Farmer Context:\n"
+            f"- Location: {location}\n"
+            f"- Active Crops: {crops_str}\n\n"
+            f"Soil Metrics:\n"
+            f"- pH: {soil_metrics.get('ph')}\n"
+            f"- Nitrogen: {soil_metrics.get('nitrogen')} mg/kg\n"
+            f"- Phosphorus: {soil_metrics.get('phosphorus')} mg/kg\n"
+            f"- Potassium: {soil_metrics.get('potassium')} mg/kg\n"
+            f"- Organic Matter: {soil_metrics.get('organic_matter')}% (if available)\n\n"
+            f"Weather Context:\n"
+            f"- Current Weather: {weather_metrics.get('temp')}°C, {weather_metrics.get('condition')}\n"
+            f"- 7-Day Forecast Summary: {weather_metrics.get('forecast_summary')}\n\n"
+            f"Instructions:\n"
+            f"1. Evaluate potential disease outbreaks, insect pests, or weather stress hazards (frost, drought, waterlogging, heat stress) that are likely to affect the active crops in this region under these exact weather conditions.\n"
+            f"2. Generate 2-4 critical risk warnings (categorized into 'pest', 'disease', or 'weather').\n"
+            f"3. Assign each risk alert a probability percentage (integer 0 to 100) and severity ('low', 'medium', 'high', 'critical').\n"
+            f"4. Provide detailed description explaining why this risk is active, along with list arrays of concrete 'prevention_steps' and 'monitoring_advice' for the farmer."
+        )
+
+        max_retries = 2
+        delay = 1.0
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=AIRiskAnalysisListSchema,
+                        system_instruction=(
+                            "You are AgriAssist AI, a professional agricultural risk assessment expert, botanist, and entomologist. "
+                            "Accurately forecast pests, plant diseases, and crop hazards using soil and weather details."
+                        )
+                    )
+                )
+
+                if response.text:
+                    import json
+                    return json.loads(response.text)
+                else:
+                    raise ValueError("Empty response received from Gemini.")
+            except Exception as e:
+                if attempt == max_retries:
+                    logger.error(f"Gemini risk analysis generation failed after {max_retries} retries: {e}", exc_info=True)
+                    raise e
+                logger.warning(f"Gemini API request failed on attempt {attempt+1}. Retrying in {delay}s... Error: {e}")
+                time.sleep(delay)
+                delay *= 2
+
 
 ai_service = AIService()
+
 
 
 

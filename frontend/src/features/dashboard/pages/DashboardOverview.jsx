@@ -4,7 +4,7 @@ import WeatherWidget from "../components/WeatherWidget";
 import ForecastWidget from "../components/ForecastWidget";
 import AdvisoryWidget from "../components/AdvisoryWidget";
 
-const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner, onNavigateToRisk, onNavigateToConsultant }) => {
+const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner, onNavigateToRisk, onNavigateToConsultant, onNavigateToNotifications }) => {
   const [latestReport, setLatestReport] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -20,6 +20,10 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
   // Consultation states
   const [latestConsult, setLatestConsult] = useState(null);
   const [loadingConsult, setLoadingConsult] = useState(true);
+
+  // Notifications states
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
 
   useEffect(() => {
     const fetchLatestReport = async () => {
@@ -76,10 +80,22 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
       }
     };
 
+    const fetchNotifications = async () => {
+      try {
+        const response = await api.get("/notifications");
+        setNotifications(response.data);
+      } catch (error) {
+        console.error("Failed to load notifications for dashboard:", error);
+      } finally {
+        setLoadingNotifications(false);
+      }
+    };
+
     fetchLatestReport();
     fetchActivities();
     fetchRiskAssessment();
     fetchLatestConsult();
+    fetchNotifications();
   }, []);
 
   const getNutrientStatus = (val, name) => {
@@ -273,6 +289,25 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
             </p>
           </div>
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Ask agronomist ➔</span>
+        </div>
+
+        <div className="glass" style={{
+          padding: "24px",
+          borderRadius: "var(--radius-md)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          transition: "var(--transition-bounce)",
+          cursor: "pointer"
+        }} onClick={onNavigateToNotifications}>
+          <div>
+            <span style={{ fontSize: "2rem", marginBottom: "16px", display: "block" }}>🔔</span>
+            <h3 style={{ fontSize: "1.2rem", marginBottom: "8px", color: "var(--text-primary)" }}>Smart Notification Center</h3>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: "1.5", marginBottom: "16px" }}>
+              Aggregate real-time advisory notices, severe weather forecasts, crop health risks, and task schedules in one central dashboard.
+            </p>
+          </div>
+          <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>View alert center ➔</span>
         </div>
       </div>
 
@@ -677,6 +712,88 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                 style={{ width: "100%", height: "40px", marginTop: "12px" }}
               >
                 Ask Consultant
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Smart Notifications Widget */}
+        <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column" }}>
+          <h2 style={{ fontSize: "1.25rem", marginBottom: "20px", color: "var(--text-primary)", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+            🔔 Alert Center Summary
+          </h2>
+
+          {loadingNotifications ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="dot-spinner"></span> Loading alerts...
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1, justifyContent: "space-between" }}>
+              <div>
+                <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+                  <div style={{ flex: 1, padding: "12px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Unread Alerts</span>
+                    <div style={{ fontSize: "1.6rem", fontWeight: "900", margin: "4px 0", color: notifications.filter(n => !n.is_read).length > 0 ? "var(--primary)" : "var(--text-muted)" }}>
+                      {notifications.filter(n => !n.is_read).length}
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, padding: "12px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Critical Alerts</span>
+                    <div style={{ fontSize: "1.6rem", fontWeight: "900", margin: "4px 0", color: notifications.filter(n => n.priority.toLowerCase() === "critical").length > 0 ? "#e53e3e" : "var(--text-muted)" }}>
+                      {notifications.filter(n => n.priority.toLowerCase() === "critical").length}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                    Latest Alerts
+                  </span>
+                  {notifications.filter(n => !n.is_read).length === 0 ? (
+                    <p style={{ fontSize: "0.825rem", color: "var(--text-secondary)", fontStyle: "italic", margin: 0 }}>
+                      No new alerts. Your farm is in great shape!
+                    </p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {notifications
+                        .filter(n => !n.is_read)
+                        .slice(0, 3)
+                        .map((notif) => {
+                          const iconMap = {
+                            weather: "🌧️",
+                            risk: "⚠️",
+                            disease: "🔬",
+                            planner: "📅",
+                            yield: "📈",
+                            agronomist: "🤖"
+                          };
+                          return (
+                            <div key={notif.id} style={{ display: "flex", gap: "8px", alignItems: "center", fontSize: "0.825rem" }}>
+                              <span>{iconMap[notif.source_module.toLowerCase()] || "🔔"}</span>
+                              <span style={{
+                                fontWeight: notif.priority.toLowerCase() === "critical" ? "700" : "500",
+                                color: notif.priority.toLowerCase() === "critical" ? "#e53e3e" : "var(--text-primary)",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                flex: 1
+                              }}>
+                                {notif.title}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <button
+                className="btn btn-primary"
+                onClick={onNavigateToNotifications}
+                style={{ width: "100%", height: "40px", marginTop: "12px" }}
+              >
+                View Alert Center
               </button>
             </div>
           )}

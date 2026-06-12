@@ -44,3 +44,4 @@ my.cnf
 # Local static file uploads
 backend/static/uploads/
 backend/uploads/
+uploads/

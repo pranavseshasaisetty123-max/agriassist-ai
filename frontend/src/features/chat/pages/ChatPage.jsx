@@ -10,16 +10,31 @@ import YieldPredictionPage from "../../yield-prediction/pages/YieldPredictionPag
 import FarmPlannerPage from "../../farm-planner/pages/FarmPlannerPage";
 import RiskWarningPage from "../../risk-intelligence/pages/RiskWarningPage";
 import ConsultAgentPage from "../../../pages/ConsultAgentPage";
+import NotificationCenterPage from "../../../pages/NotificationCenterPage";
 import "./Chat.css";
 
 const ChatPage = () => {
   const { currentFarmer, logout } = useAuth();
   
   const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, soil, chat
+  const [unreadCount, setUnreadCount] = useState(0);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await api.get("/notifications/unread");
+      setUnreadCount(response.data.length);
+    } catch (error) {
+      console.error("Failed to load notifications unread count:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+  }, [activeTab]);
   
   const [isSessionsLoading, setIsSessionsLoading] = useState(true);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
@@ -171,6 +186,8 @@ const ChatPage = () => {
         return "Risk Early Warning System";
       case "consult-agent":
         return "Virtual Agronomist Consultant";
+      case "notifications":
+        return "Smart Alert Center";
       case "chat":
         return sessions.find((s) => s.id === activeSessionId)?.title || "AI Consult Agent";
       default:
@@ -199,6 +216,8 @@ const ChatPage = () => {
         return "Proactive AI pest, disease, and weather risk warnings";
       case "consult-agent":
         return "AI-powered unified farm advisor and recommendations coach";
+      case "notifications":
+        return "Aggregate warnings, weather, yield, and planning task alerts";
       case "chat":
         return "AI Agronomist Active";
       default:
@@ -308,6 +327,31 @@ const ChatPage = () => {
             <span className="session-title-text">Virtual Agronomist</span>
           </div>
           <div
+            className={`session-item-row ${activeTab === "notifications" && !showProfileSettings ? "active-item" : ""}`}
+            onClick={() => {
+              setActiveTab("notifications");
+              setShowProfileSettings(false);
+            }}
+          >
+            <span className="session-icon">🔔</span>
+            <span className="session-title-text">Alert Center</span>
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  backgroundColor: "#e53e3e",
+                  color: "white",
+                  borderRadius: "10px",
+                  padding: "2px 8px",
+                  fontSize: "0.7rem",
+                  fontWeight: "bold",
+                  marginLeft: "auto"
+                }}
+              >
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          <div
             className={`session-item-row ${activeTab === "chat" && !showProfileSettings ? "active-item" : ""}`}
             onClick={() => {
               setActiveTab("chat");
@@ -371,6 +415,39 @@ const ChatPage = () => {
             <p className="header-status">{getHeaderStatus()}</p>
           </div>
           <div className="header-actions">
+            <button
+              className={`btn btn-secondary ${activeTab === "notifications" ? "btn-active" : ""}`}
+              onClick={() => {
+                setActiveTab("notifications");
+                setShowProfileSettings(false);
+              }}
+              style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "42px", height: "42px", padding: 0 }}
+              title="Alert Center"
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "-4px",
+                    right: "-4px",
+                    backgroundColor: "#e53e3e",
+                    color: "white",
+                    borderRadius: "50%",
+                    minWidth: "18px",
+                    height: "18px",
+                    fontSize: "0.65rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: "bold",
+                    padding: "0 4px"
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
             <button
               className={`btn btn-secondary ${showProfileSettings ? "btn-active" : ""}`}
               onClick={() => setShowProfileSettings(!showProfileSettings)}
@@ -464,6 +541,7 @@ const ChatPage = () => {
             onNavigateToPlanner={() => setActiveTab("farm-planner")}
             onNavigateToRisk={() => setActiveTab("risk-intelligence")}
             onNavigateToConsultant={() => setActiveTab("consult-agent")}
+            onNavigateToNotifications={() => setActiveTab("notifications")}
           />
         ) : activeTab === "soil" ? (
           /* Soil Health Analysis Tab */
@@ -489,6 +567,9 @@ const ChatPage = () => {
         ) : activeTab === "consult-agent" ? (
           /* Virtual Agronomist Tab */
           <ConsultAgentPage onNavigateToPlanner={() => setActiveTab("farm-planner")} />
+        ) : activeTab === "notifications" ? (
+          /* Notification Center Page Tab */
+          <NotificationCenterPage onUpdateUnread={setUnreadCount} />
         ) : (
           /* Consult Agent Chat Window Screen Tab */
           <div className="chat-window-wrapper">

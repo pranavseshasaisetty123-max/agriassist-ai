@@ -10,6 +10,7 @@ from app.models.yield_prediction import YieldPrediction
 from app.models.farm_planner import FarmPlan, FarmTask
 from app.models.risk_alert import RiskAlert
 from app.models.consult_agent import ConsultationHistory
+from app.models.notification import Notification
 
 __all__ = [
     "Base",
@@ -28,6 +29,7 @@ __all__ = [
     "FarmPlan",
     "FarmTask",
     "RiskAlert",
-    "ConsultationHistory"
+    "ConsultationHistory",
+    "Notification"
 ]
 

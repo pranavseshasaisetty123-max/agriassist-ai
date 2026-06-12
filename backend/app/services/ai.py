@@ -899,6 +899,106 @@ class AIService:
                 time.sleep(delay)
                 delay *= 2
 
+    def generate_farm_consultation(
+        self,
+        soil_report: Optional[dict],
+        weather_data: Optional[dict],
+        crop_recommendations: List[dict],
+        yield_predictions: List[dict],
+        market_intelligence: List[dict],
+        active_farm_plans: List[dict],
+        active_risk_warnings: List[dict],
+        question: str,
+        location: str
+    ) -> dict:
+        """
+        Reason across all agricultural context inputs to provide an expert farm consultation
+        replying to the farmer's question.
+        """
+        import json
+        if not self.enabled or not self.client:
+            # Dynamic mock fallback
+            return {
+                "farm_health_score": 82,
+                "health_summary": f"[DEMO] Your farm shows stable health indicators. Current active plans include crops, with soil parameters supporting growth.",
+                "key_findings": [
+                    "[DEMO] Soil nutrients are within moderate ranges, but nitrogen levels could be optimized.",
+                    "[DEMO] Forecasted weather conditions suggest keeping irrigation to moderate levels.",
+                    "[DEMO] Market price predictions for tomato suggest high profit potential."
+                ],
+                "recommended_actions": [
+                    "[DEMO] Postpone heavy watering due to forecast precipitation.",
+                    "[DEMO] Top-dress nitrogen fertilizer on planned Tomato crops."
+                ],
+                "risk_assessment": "[DEMO] Moderate risk from upcoming temperature shifts, with minor pest alerts on active crops.",
+                "answer": f"[DEMO] To answer your question: '{question}' - Cultivating tomato this season is highly recommended. Your soil pH of {soil_report.get('ph', 6.5) if soil_report else 6.5} is well-suited for tomatoes, and current market prices average 25 INR/kg, yielding a strong profit margin.",
+                "confidence_score": 90
+            }
+
+        import time
+        from pydantic import BaseModel, Field
+        from typing import List
+
+        class AIConsultationResponseSchema(BaseModel):
+            farm_health_score: int = Field(..., ge=0, le=100)
+            health_summary: str
+            key_findings: List[str]
+            recommended_actions: List[str]
+            risk_assessment: str
+            answer: str
+            confidence_score: int = Field(..., ge=0, le=100)
+
+        prompt = (
+            f"You are a professional agricultural scientist, plant pathologist, entomologist, and farm management advisor.\n"
+            f"Reason across all parts of the farmer's details below to answer their question: '{question}'\n\n"
+            f"--- FARM CONTEXT ---\n"
+            f"Farmer Location: {location}\n\n"
+            f"Soil Report:\n{json.dumps(soil_report, indent=2) if soil_report else 'No report available'}\n\n"
+            f"Weather Data:\n{json.dumps(weather_data, indent=2) if weather_data else 'No weather data'}\n\n"
+            f"Latest Crop Recommendations:\n{json.dumps(crop_recommendations, indent=2)}\n\n"
+            f"Latest Yield Predictions:\n{json.dumps(yield_predictions, indent=2)}\n\n"
+            f"Latest Market Intelligence (Profitability Analyses):\n{json.dumps(market_intelligence, indent=2)}\n\n"
+            f"Active Farm Sowing Plans:\n{json.dumps(active_farm_plans, indent=2)}\n\n"
+            f"Active Risk Warnings (Pest, Disease, Weather):\n{json.dumps(active_risk_warnings, indent=2)}\n\n"
+            f"Question:\n{question}\n\n"
+            f"Instructions:\n"
+            f"1. Evaluate the entire farm status. Calculate an overall farm_health_score (integer 0-100) and draft a brief health_summary.\n"
+            f"2. Formulate a list of key_findings (at least 2) and recommended_actions (at least 2) summarizing main observations and logical next steps.\n"
+            f"3. Provide a risk_assessment summary summarizing the most critical active hazards.\n"
+            f"4. Formulate a detailed answer to the farmer's specific question, incorporating all relevant context.\n"
+            f"5. Assign a confidence_score (integer 0-100) representing your level of certainty in the advice."
+        )
+
+        max_retries = 2
+        delay = 1.0
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=AIConsultationResponseSchema,
+                        system_instruction=(
+                            "You are AgriAssist AI, a professional virtual agronomist and farm management advisor. "
+                            "Reason across soil, weather, crop, plan, price, and risk indicators to provide high-quality recommendations."
+                        )
+                    )
+                )
+
+                if response.text:
+                    import json
+                    return json.loads(response.text)
+                else:
+                    raise ValueError("Empty response received from Gemini.")
+            except Exception as e:
+                if attempt == max_retries:
+                    logger.error(f"Gemini farm consultation generation failed after {max_retries} retries: {e}", exc_info=True)
+                    raise e
+                logger.warning(f"Gemini API request failed on attempt {attempt+1}. Retrying in {delay}s... Error: {e}")
+                time.sleep(delay)
+                delay *= 2
+
 
 ai_service = AIService()
 

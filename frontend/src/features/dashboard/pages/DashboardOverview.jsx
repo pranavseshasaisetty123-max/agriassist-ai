@@ -4,7 +4,7 @@ import WeatherWidget from "../components/WeatherWidget";
 import ForecastWidget from "../components/ForecastWidget";
 import AdvisoryWidget from "../components/AdvisoryWidget";
 
-const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner, onNavigateToRisk }) => {
+const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner, onNavigateToRisk, onNavigateToConsultant }) => {
   const [latestReport, setLatestReport] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -16,6 +16,10 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
   // Risk warnings states
   const [riskAssessment, setRiskAssessment] = useState(null);
   const [loadingRisk, setLoadingRisk] = useState(true);
+
+  // Consultation states
+  const [latestConsult, setLatestConsult] = useState(null);
+  const [loadingConsult, setLoadingConsult] = useState(true);
 
   useEffect(() => {
     const fetchLatestReport = async () => {
@@ -59,9 +63,23 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
       }
     };
 
+    const fetchLatestConsult = async () => {
+      try {
+        const response = await api.get("/consult-agent/history");
+        if (response.data && response.data.length > 0) {
+          setLatestConsult(response.data[0]);
+        }
+      } catch (error) {
+        console.error("Failed to load latest consult:", error);
+      } finally {
+        setLoadingConsult(false);
+      }
+    };
+
     fetchLatestReport();
     fetchActivities();
     fetchRiskAssessment();
+    fetchLatestConsult();
   }, []);
 
   const getNutrientStatus = (val, name) => {
@@ -236,6 +254,25 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
             </p>
           </div>
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Scan for risks ➔</span>
+        </div>
+
+        <div className="glass" style={{
+          padding: "24px",
+          borderRadius: "var(--radius-md)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          transition: "var(--transition-bounce)",
+          cursor: "pointer"
+        }} onClick={onNavigateToConsultant}>
+          <div>
+            <span style={{ fontSize: "2rem", marginBottom: "16px", display: "block" }}>🤖</span>
+            <h3 style={{ fontSize: "1.2rem", marginBottom: "8px", color: "var(--text-primary)" }}>Virtual Agronomist</h3>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: "1.5", marginBottom: "16px" }}>
+              Consult the unified farm advisor to reason across yield, weather forecasting, disease scans, and market prices.
+            </p>
+          </div>
+          <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Ask agronomist ➔</span>
         </div>
       </div>
 
@@ -546,6 +583,100 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                 style={{ width: "100%", height: "40px", marginTop: "12px" }}
               >
                 Scan & View Warnings
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Virtual Agronomist Summary Widget */}
+        <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column" }}>
+          <h2 style={{ fontSize: "1.25rem", marginBottom: "20px", color: "var(--text-primary)", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+            🤖 Virtual Agronomist
+          </h2>
+          
+          {loadingConsult ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="dot-spinner"></span> Loading agronomist index...
+            </div>
+          ) : !latestConsult ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <p style={{ marginBottom: "16px" }}>No agronomist consultations logged yet.</p>
+              <button className="btn btn-primary" onClick={onNavigateToConsultant}>
+                Ask First Question
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1, justifyContent: "space-between" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "20px", borderBottom: "1px solid var(--border-light)", paddingBottom: "16px", marginBottom: "12px" }}>
+                  <div style={{ position: "relative", width: "70px", height: "70px" }}>
+                    <svg width="70" height="70" viewBox="0 0 70 70">
+                      <circle cx="35" cy="35" r="30" fill="none" stroke="var(--border-light)" strokeWidth="6" />
+                      <circle
+                        cx="35"
+                        cy="35"
+                        r="30"
+                        fill="none"
+                        stroke={(() => {
+                          const score = latestConsult.farm_health_score;
+                          if (score >= 80) return "#38a169";
+                          if (score >= 50) return "#dd6b20";
+                          return "#e53e3e";
+                        })()}
+                        strokeWidth="6"
+                        strokeDasharray="188.5"
+                        strokeDashoffset={188.5 - (latestConsult.farm_health_score / 100) * 188.5}
+                        strokeLinecap="round"
+                        transform="rotate(-90 35 35)"
+                        style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
+                      />
+                    </svg>
+                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontSize: "1.1rem", fontWeight: "900", color: "var(--text-primary)" }}>
+                        {latestConsult.farm_health_score}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "0.65rem", fontWeight: "700", color: "var(--text-secondary)", textTransform: "uppercase" }}>
+                      Farm Health Score
+                    </span>
+                    <h4 style={{ fontSize: "1.1rem", fontWeight: "800", margin: "2px 0 0", color: "var(--text-primary)" }}>
+                      {latestConsult.farm_health_score >= 80 ? "Good" : (latestConsult.farm_health_score >= 50 ? "Fair" : "Needs Attention")}
+                    </h4>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div>
+                    <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase", display: "block" }}>
+                      Top Recommendation:
+                    </span>
+                    <p style={{ fontSize: "0.825rem", color: "var(--text-secondary)", margin: "2px 0 0", lineHeight: "1.4" }}>
+                      {latestConsult.recommended_actions && latestConsult.recommended_actions.length > 0
+                        ? latestConsult.recommended_actions[0]
+                        : "No recommendations compiled yet."}
+                    </p>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase", display: "block" }}>
+                      Highest Active Risk:
+                    </span>
+                    <p style={{ fontSize: "0.825rem", color: "var(--text-secondary)", margin: "2px 0 0", lineHeight: "1.4" }}>
+                      {latestConsult.risk_assessment
+                        ? (latestConsult.risk_assessment.length > 100 ? latestConsult.risk_assessment.substring(0, 100) + "..." : latestConsult.risk_assessment)
+                        : "No risks flagged."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                className="btn btn-primary"
+                onClick={onNavigateToConsultant}
+                style={{ width: "100%", height: "40px", marginTop: "12px" }}
+              >
+                Ask Consultant
               </button>
             </div>
           )}

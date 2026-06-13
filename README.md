@@ -1,174 +1,187 @@
-# 🌿 AgriAssist AI — Virtual Agronomist & Farmer Assistant
+# 🌿 AgriAssist AI — Virtual Agronomist & Enterprise Multi-Farm Intelligence Platform
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
 [![MySQL](https://img.shields.io/badge/MySQL-00758F?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Gemini](https://img.shields.io/badge/Gemini_API-8E75C2?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
-[![Tailwind](https://img.shields.io/badge/Vanilla_CSS-1572B6?style=for-the-badge&logo=css3&logoColor=white)](#design-aesthetics)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Nginx](https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white)](https://nginx.org/)
 
-AgriAssist AI is a production-grade, full-stack virtual agronomist assistant built to support farmers. Powered by Google Gemini AI, it answers agricultural queries regarding soil testing, pest management, crop scheduling, and modern farming techniques. 
-
-This repository houses the **Sprint 1** foundation, providing secure authentication, profile customization, and topic-based AI conversational workspaces. Designed with clean software architecture principles, it is ready to scale into a multimodal AI agent.
+AgriAssist AI is a production-grade, full-stack agricultural decision-support platform built using FastAPI, React, MySQL, and Google Gemini AI. It enables multi-farm managers to aggregate NPK soil diagnostics, weather forecast telemetry, pest/disease risk warning forecasts, and live crop market prices into a unified dashboard workspace.
 
 ---
 
-## 🚀 Features (Sprint 1)
+## 📖 Table of Contents
+1. [Project Overview](#-project-overview)
+2. [Problem Statement & Solution](#-problem-statement--solution)
+3. [Core Capabilities (15 Sprints)](#-core-capabilities-15-sprints)
+4. [Tech Stack](#-tech-stack)
+5. [System Architecture](#-system-architecture)
+6. [Database Schema & Migrations](#-database-schema--migrations)
+7. [Installation & Setup](#-installation--setup)
+   - [A. Docker Compose Orchestration (Recommended)](#a-docker-compose-orchestration-recommended)
+   - [B. Direct Local Setup](#b-direct-local-setup)
+8. [API Overview](#-api-overview)
+9. [Automated Testing & Live Checks](#-automated-testing--live-checks)
+10. [Folder Structure](#-folder-structure)
+11. [Author & Contributions](#-author--contributions)
 
-*   **Farmer Authentication**: Secure signup and login using **Bcrypt** password hashing and **JWT** session authorization.
-*   **Profile Settings**: Customized farmer profiles specifying location (state/district) and contact details to facilitate localized agricultural advice.
-*   **Conversational Workspace**: Interactive chat interface with real-time prompt-response sequences, supported by custom loading indicators and micro-animations.
-*   **Topic Sessions**: Session-based chat history tracking, allowing farmers to organize conversations by crop, season, or pest query.
-*   **Gemini API Integration**: Directly integrated with the `google-genai` SDK using a tailored system instruction prompt instructing the model to act as a professional virtual agronomist.
+---
+
+## 🌟 Project Overview
+AgriAssist AI bridges the gap between raw scientific agronomy data (chemical soil reports, meteorological models) and daily farm operations. Using Google Gemini AI, the platform acts as a personalized virtual consultant, outputting structured crop suitability scores, organic pest mitigation steps, and adaptive sowing calendars.
+
+---
+
+## 💡 Problem Statement & Solution
+* **The Problem**: Modern farmers manage multiple disparate land holdings and struggle to synthesize soil data sheets, weather alerts, fluctuating market rates, and crop disease anomalies into cohesive schedules. Django/Flask monolithic apps are often slow and lack mobile responsiveness.
+* **The Solution**: AgriAssist AI isolates multi-farm contexts, offering a single responsive workspace where farmers can log reports, run AI diagnostics, track calendar checklists, and download PDF analytics snapshots.
+
+---
+
+## 🌾 Core Capabilities (15 Sprints)
+* **Authentication & Profiles**: Secure signup, login, and token session control with bcrypt hashing and JWT.
+* **Soil Diagnostics & Analysis**: Input and track pH, Nitrogen, Phosphorus, Potassium (NPK) values over time.
+* **AI Crop Recommendation**: Matches soil parameters with optimal crop types using structured Gemini AI JSON outputs.
+* **Disease Leaf spot Scanning**: Upload crop leaf photos to identify infections (fungal, bacterial) and receive organic treatment steps.
+* **Market Price Tracker**: Live price feeds, net revenue projection models, and ROI ratio calculations.
+* **Yield Projections**: Expected yield estimations per acre with confidence intervals.
+* **Farm Planner & Activity Planners**: Sequential crop timeline calendars with tasks prioritized, complete flags, and snooze capabilities.
+* **Risk Early Warnings**: Regional warning center alerting farmers of storms, pest threats, and soil hazards.
+* **Virtual AI Consultant**: Context-aware agronomist chatbot referencing active soil profiles, location constraints, and chat logs.
+* **Alert Inbox Inbox**: Central inbox aggregating notifications from all modules with soft-delete controls.
+* **Executive PDF Report Compiler**: Generates downloadable PDF performance charts and profit gauges using ReportLab.
+* **Multi-Farm Context Switching**: Create, manage, and toggle between multiple land holdings. Features self-healing fallback logic if context is lost.
+* **Placement-Ready UX Polish**: Dynamic HSL light/dark themes, full-page loading indicators, skeleton card shimmers, global toast notifications, error boundaries, and system health status widgets.
 
 ---
 
 ## 🛠️ Tech Stack
-
-*   **Frontend SPA**: [React](https://react.dev/) (Vite, JavaScript), [React Router v6](https://reactrouter.com/), [Axios](https://axios-http.com/) (with request/response JWT header interceptors), Context API.
-*   **Backend API**: [FastAPI](https://fastapi.tiangolo.com/) (Python), [SQLAlchemy ORM](https://www.sqlalchemy.org/), [Alembic](https://alembic.sqlalchemy.org/) (database migrations), [Pydantic v2](https://docs.pydantic.dev/), [PyJWT](https://pyjwt.readthedocs.io/).
-*   **Database**: [MySQL](https://www.mysql.com/) (Relational schema storing farmers, chat sessions, and message logs).
-*   **AI Engine**: [Google Gemini API](https://ai.google.dev/) (`gemini-2.5-flash` model).
+* **Frontend SPA**: React.js (Vite, JavaScript), Axios (with request/response interceptors), Context API, HSL CSS design variables.
+* **Backend API**: FastAPI (Python), SQLAlchemy ORM (MySQL driver), Pydantic v2 schemas, PyJWT token security, ReportLab PDF generator.
+* **Database**: MySQL RDBMS, database schemas managed using Alembic migrations.
+* **Deployment Packaging**: Docker, Docker-Compose, Nginx (for static SPA hosting and clean routing).
+* **AI Cognitive Engine**: Google Gemini AI (1.5 Flash) via `google-genai` SDK.
 
 ---
 
 ## 📊 System Architecture
 
-The project is structured as a decoupled monorepo containing `frontend` and `backend` services communicating over a secure RESTful API.
-
 ```mermaid
 graph TD
-    %% Frontend Client
-    subgraph Client [React Frontend]
+    subgraph Client [React Frontend SPA]
         ReactSPA["React SPA (Vite)"]
-        AuthCtx["Auth Context<br>(JWT Persistence)"]
-        AxiosClient["Axios Interceptor<br>(Injects Bearer Token)"]
+        Nginx["Nginx Reverse Proxy"]
+        AxiosClient["Axios Interceptor"]
     end
 
-    %% Backend Services
     subgraph API [FastAPI Backend]
-        Router["Router / API Endpoints<br>(/auth, /farmers, /chat)"]
-        AuthMiddleware["JWT Middleware<br>(Token validation)"]
-        
-        subgraph Services [Service Layer]
-            AuthService["Auth Service<br>(Bcrypt verify)"]
-            ChatService["Chat Service<br>(Message Flow Coordinator)"]
-            AIService["AI Service<br>(Gemini SDK Client)"]
-        end
-
-        subgraph Repositories [Repository Layer]
-            FarmerRepo["Farmer Repository<br>(CRUD on Farmers)"]
-            ChatRepo["Chat Repository<br>(CRUD on Chat Logs)"]
-        end
+        Router["REST routers (/auth, /farmers, /farms, /system)"]
+        AuthMiddleware["JWT Middleware"]
+        Services["Services (Auth, Farm, Chat, PDF Compiler)"]
+        Repos["Repositories (CRUD layers)"]
     end
 
-    %% Data / AI Layer
     subgraph Storage [Storage & External AI]
-        MySQL[("MySQL Database<br>(farmers, sessions, messages)")]
-        Gemini["Google Gemini API<br>(gemini-2.5-flash)"]
+        MySQL[("MySQL RDBMS")]
+        Gemini["Google Gemini AI"]
     end
 
-    %% Connect flows
-    ReactSPA --> AuthCtx
     ReactSPA --> AxiosClient
-    AxiosClient -->|HTTPS + JWT Header| Router
+    AxiosClient -->|Port 8000 REST| Router
     Router --> AuthMiddleware
-    AuthMiddleware --> AuthService
-    AuthMiddleware --> ChatService
-    
-    AuthService --> FarmerRepo
-    ChatService --> ChatRepo
-    ChatService --> AIService
-    
-    FarmerRepo -->|SQLAlchemy| MySQL
-    ChatRepo -->|SQLAlchemy| MySQL
-    AIService -->|API Key Auth| Gemini
+    AuthMiddleware --> Services
+    Services --> Repos
+    Repos -->|SQLAlchemy| MySQL
+    Services -->|API Client| Gemini
 ```
 
 ---
 
-## ⚙️ Environment Variables
+## 🔌 API Overview
+All REST routes are prefixed under `/api/v1/`:
 
-The backend application requires configuration values to be set in a `.env` file under the `/backend` directory:
-
-| Variable | Description | Example |
-| :--- | :--- | :--- |
-| `DATABASE_URL` | MySQL Connection String | `mysql+pymysql://root:password@localhost:3306/agriassist` |
-| `GEMINI_API_KEY` | Google Gemini API Key | `AIzaSyB...` (From Google AI Studio) |
-| `JWT_SECRET_KEY` | Signing Secret Key for JWTs | `supersecretkeychangeinproduction12345` |
-| `JWT_ALGORITHM` | Algorithm used to sign tokens | `HS256` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Time limit before session expires | `30` |
-
----
-
-## 🔌 API Routes
-
-All endpoints reside under the `/api/v1` namespace. Operations labeled as **Authenticated** require a header: `Authorization: Bearer <JWT_TOKEN>`.
-
-| Route | Method | Authenticated | Payload | Purpose |
-| :--- | :--- | :--- | :--- | :--- |
-| `/auth/register` | **POST** | No | `{ email, password, first_name, last_name, location, contact_number }` | Register a new farmer account |
-| `/auth/login` | **POST** | No | Form-Data: `{ username, password }` | Authenticate and obtain JWT token |
-| `/farmers/me` | **GET** | Yes | *None* | Retrieve logged-in profile data |
-| `/farmers/me` | **PUT** | Yes | `{ first_name, last_name, location, contact_number }` | Update user location/contact info |
-| `/chat/sessions` | **GET** | Yes | *None* | List chat history topics |
-| `/chat/sessions` | **POST** | Yes | `{ title }` | Start a new chat topic session |
-| `/chat/sessions/{id}/messages` | **GET** | Yes | *None* | Load messages inside a session |
-| `/chat/sessions/{id}/messages` | **POST** | Yes | `{ message_text }` | Send user query and receive AI reply |
+* `POST /auth/register` - Create farmer profile.
+* `POST /auth/login` - Authenticate and retrieve bearer token.
+* `GET /farmers/settings` / `PUT /farmers/settings` - Read/Update settings.
+* `POST /farmers/change-password` - Update password.
+* `GET /farms/portfolio` - Fetch total holdings summary.
+* `POST /soil/reports` - Log soil metrics.
+* `POST /crop-recommendations/generate` - Run AI suitability engine.
+* `POST /disease/scans` - Upload foliage image for scanning.
+* `POST /farm-planner/plans/generate` - Generate AI activity calendar.
+* `GET /system/status` - Live system diagnostics.
+* `GET /system/help` - Help guides and FAQs.
 
 ---
 
-## 🛠️ Installation & Setup
+## ⚙️ Installation & Setup
 
-### Prerequisites
-*   Python 3.10+
-*   Node.js 18+
-*   MySQL Server running locally
+### A. Docker Compose Orchestration (Recommended)
+This runs the entire stack (React UI, FastAPI backend, MySQL database) with a single command.
 
-### 1. Database Setup
-Log into your MySQL terminal and create the application database:
+1.  **Prerequisites**: Install [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+2.  **Configuration**: Copy `.env.example` to `.env` in the root folder and add your Gemini API Key:
+    ```bash
+    cp .env.example .env
+    ```
+    *Ensure `GEMINI_API_KEY=your_key` is set.*
+3.  **Start Services**: Build and launch all container services:
+    ```bash
+    docker compose up --build -d
+    ```
+4.  **Database Seeding (Optional)**: Populates the container database with a recruiter demo profile:
+    ```bash
+    docker exec -it agriassist-api python ../scripts/seed_demo_data.py
+    ```
+5.  **Access URL Routes**:
+    * **Frontend React SPA**: [http://localhost:3000/](http://localhost:3000/)
+    * **Backend REST API**: [http://localhost:8000/docs/](http://localhost:8000/docs/)
+
+---
+
+### B. Direct Local Setup
+
+#### 1. Database Configuration
+Create your MySQL application database:
 ```sql
 CREATE DATABASE IF NOT EXISTS agriassist;
 ```
 
-### 2. Backend Installation
-1.  Navigate to the backend directory:
+#### 2. Backend API Setup
+1.  Navigate to the backend directory and activate the virtual environment:
     ```bash
     cd backend
-    ```
-2.  Create and activate a virtual environment:
-    ```bash
     python3 -m venv venv
     source venv/bin/activate
     ```
-3.  Install dependencies:
+2.  Install dependencies:
     ```bash
     pip install -r requirements.txt
     ```
-4.  Configure your variables by creating a `.env` file under the `/backend` folder:
+3.  Configure your local variables inside `backend/.env`:
     ```env
-    DATABASE_URL=mysql+pymysql://<user>:<password>@localhost:3306/agriassist
+    DATABASE_URL=mysql+pymysql://root:password@localhost:3306/agriassist
     GEMINI_API_KEY=your_gemini_api_key_here
+    JWT_SECRET_KEY=supersecretkeychangeinproduction1234567890
     ```
-5.  Run database migrations to generate schemas:
+4.  Run database migrations and seed demo data:
     ```bash
     alembic upgrade head
+    python ../scripts/seed_demo_data.py
     ```
-6.  Start the FastAPI development server:
+5.  Start the dev server:
     ```bash
     uvicorn app.main:app --reload
     ```
-    *API documentation will be accessible at: http://127.0.0.1:8000/docs*
 
-### 3. Frontend Installation
-1.  Navigate to the frontend directory:
+#### 3. Frontend UI Setup
+1.  Navigate to the frontend directory and install NPM packages:
     ```bash
     cd ../frontend
-    ```
-2.  Install packages:
-    ```bash
     npm install
     ```
-3.  Start the Vite React development server:
+2.  Start the Vite React development server:
     ```bash
     npm run dev
     ```
@@ -176,18 +189,49 @@ CREATE DATABASE IF NOT EXISTS agriassist;
 
 ---
 
-## 🧪 Testing
+## 🧪 Automated Testing & Live Checks
 
-The backend includes a comprehensive test suite (10/10 test cases passing) built with `pytest` verifying auth validation and chat session constraints. Run tests with:
+### 1. Run Backend Unit Tests Suite
+Verify database models, authentication constraints, and session logic using pytest:
 ```bash
-PYTHONPATH=backend venv/bin/pytest
+PYTHONPATH=backend backend/venv/bin/pytest backend/app/tests/test_sprint14_ui.py
+```
+
+### 2. Run E2E Production Verification
+Pings the live server endpoints, authenticates the recruiter account, verifies portfolio summaries, and tracks response times:
+```bash
+backend/venv/bin/python verify_release.py
 ```
 
 ---
 
-## 🔮 Future Roadmap
-
-*   **Weather Forecast Integration**: Implementing Gemini **Function Calling (Tools)** to query real-time external weather APIs and automatically advise on optimal harvest/watering dates.
-*   **Multimodal Crop Diagnosis**: Allowing farmers to upload pictures of damaged leaves, sending image streams directly to Gemini Vision to diagnose pest issues.
-*   **Knowledge Base (RAG)**: Integrating a Vector Database (Qdrant/Milvus) storing PDF farming guides to give localized, expert answers based on regional agricultural manuals.
-*   **Asynchronous Background Queues**: Deploying Redis & Celery for automated soil health email reporting and scheduled alert configurations.
+## 📂 Folder Structure
+```
+agriassist-ai/
+├── backend/                  # FastAPI REST Backend Service
+│   ├── alembic/              # Database schema versions (Migrations)
+│   ├── app/                  # Main server application
+│   │   ├── api/              # Routers and controllers
+│   │   ├── core/             # Base configurations and security
+│   │   ├── models/           # SQLAlchemy DB Models
+│   │   ├── repositories/     # Database CRUD layer
+│   │   ├── schemas/          # Pydantic validation schemas
+│   │   └── services/         # Business services and Gemini clients
+│   ├── Dockerfile            # Backend production container script
+│   └── requirements.txt      # Python dependencies list
+├── frontend/                 # React Frontend Client
+│   ├── src/                  # React components and contexts
+│   ├── Dockerfile            # Frontend production container script
+│   ├── nginx.conf            # Custom Nginx SPA configuration
+│   └── package.json          # Node dependencies list
+├── docs/                     # Technical specifications & guides
+│   ├── architecture.md       # Detailed system design
+│   ├── api.md                # Complete API payload directory
+│   ├── interview-guide.md    # Placement Q&As package
+│   └── resume-project.md     # Resume bullet points template
+├── scripts/                  # Management scripts
+│   └── seed_demo_data.py     # MySQL database seeder script
+├── docker-compose.yml        # Orchestration compose configurations
+├── verify_release.py         # Release integration test suite
+└── RELEASE_NOTES.md          # Sprint roadmap summaries
+```

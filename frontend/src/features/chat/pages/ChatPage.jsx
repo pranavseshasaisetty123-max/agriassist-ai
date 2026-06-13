@@ -11,6 +11,7 @@ import FarmPlannerPage from "../../farm-planner/pages/FarmPlannerPage";
 import RiskWarningPage from "../../risk-intelligence/pages/RiskWarningPage";
 import ConsultAgentPage from "../../../pages/ConsultAgentPage";
 import NotificationCenterPage from "../../../pages/NotificationCenterPage";
+import FarmAnalyticsPage from "../../../pages/FarmAnalyticsPage";
 import "./Chat.css";
 
 const ChatPage = () => {
@@ -170,6 +171,8 @@ const ChatPage = () => {
     switch (activeTab) {
       case "dashboard":
         return "AgriAssist Dashboard";
+      case "analytics":
+        return "Farm Analytics Dashboard";
       case "soil":
         return "Soil Diagnostics Center";
       case "disease":
@@ -200,6 +203,8 @@ const ChatPage = () => {
     switch (activeTab) {
       case "dashboard":
         return `Welcome back, ${currentFarmer?.first_name || "Farmer"}`;
+      case "analytics":
+        return "Real-time metrics, profit projections, and PDF report downloads";
       case "soil":
         return "Log and analyze soil parameters";
       case "disease":
@@ -245,6 +250,16 @@ const ChatPage = () => {
           >
             <span className="session-icon">🌾</span>
             <span className="session-title-text">Dashboard</span>
+          </div>
+          <div
+            className={`session-item-row ${activeTab === "analytics" && !showProfileSettings ? "active-item" : ""}`}
+            onClick={() => {
+              setActiveTab("analytics");
+              setShowProfileSettings(false);
+            }}
+          >
+            <span className="session-icon">📊</span>
+            <span className="session-title-text">Analytics</span>
           </div>
           <div
             className={`session-item-row ${activeTab === "soil" && !showProfileSettings ? "active-item" : ""}`}
@@ -542,7 +557,11 @@ const ChatPage = () => {
             onNavigateToRisk={() => setActiveTab("risk-intelligence")}
             onNavigateToConsultant={() => setActiveTab("consult-agent")}
             onNavigateToNotifications={() => setActiveTab("notifications")}
+            onNavigateToAnalytics={() => setActiveTab("analytics")}
           />
+        ) : activeTab === "analytics" ? (
+          /* Farm Analytics Page Tab */
+          <FarmAnalyticsPage />
         ) : activeTab === "soil" ? (
           /* Soil Health Analysis Tab */
           <SoilAnalyzerPage />

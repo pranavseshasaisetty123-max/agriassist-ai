@@ -4,7 +4,7 @@ import WeatherWidget from "../components/WeatherWidget";
 import ForecastWidget from "../components/ForecastWidget";
 import AdvisoryWidget from "../components/AdvisoryWidget";
 
-const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner, onNavigateToRisk, onNavigateToConsultant, onNavigateToNotifications }) => {
+const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner, onNavigateToRisk, onNavigateToConsultant, onNavigateToNotifications, onNavigateToAnalytics }) => {
   const [latestReport, setLatestReport] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -24,6 +24,10 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
   // Notifications states
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+
+  // Analytics states
+  const [analyticsKPIs, setAnalyticsKPIs] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
   useEffect(() => {
     const fetchLatestReport = async () => {
@@ -91,11 +95,23 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
       }
     };
 
+    const fetchAnalyticsKPIs = async () => {
+      try {
+        const response = await api.get("/analytics/kpis");
+        setAnalyticsKPIs(response.data);
+      } catch (error) {
+        console.error("Failed to load analytics KPIs for dashboard:", error);
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+
     fetchLatestReport();
     fetchActivities();
     fetchRiskAssessment();
     fetchLatestConsult();
     fetchNotifications();
+    fetchAnalyticsKPIs();
   }, []);
 
   const getNutrientStatus = (val, name) => {
@@ -158,6 +174,25 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
 
       {/* 3. Action Cards Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px" }}>
+        <div className="glass" style={{
+          padding: "24px",
+          borderRadius: "var(--radius-md)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          transition: "var(--transition-bounce)",
+          cursor: "pointer"
+        }} onClick={onNavigateToAnalytics}>
+          <div>
+            <span style={{ fontSize: "2rem", marginBottom: "16px", display: "block" }}>📊</span>
+            <h3 style={{ fontSize: "1.2rem", marginBottom: "8px", color: "var(--text-primary)" }}>Farm Analytics & Reports</h3>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: "1.5", marginBottom: "16px" }}>
+              Aggregate real-time KPIs, view historical trends, and export complete executive farm performance reports as PDF.
+            </p>
+          </div>
+          <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>View analytics ➔</span>
+        </div>
+
         <div className="glass" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
@@ -313,6 +348,46 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
 
       {/* 4. Split Status & Advisory Row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "24px" }}>
+        {/* Analytics Summary Widget */}
+        <div className="glass hover-card" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column", cursor: "pointer" }} onClick={onNavigateToAnalytics}>
+          <h2 style={{ fontSize: "1.25rem", marginBottom: "20px", color: "var(--text-primary)", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+            📊 Farm Analytics Summary
+          </h2>
+          {loadingAnalytics ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="dot-spinner"></span> Loading analytics...
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1, justifyContent: "space-between" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Health Index</span>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--primary)", marginTop: "4px" }}>
+                    {analyticsKPIs?.health_score?.toFixed(0) || 75}
+                  </div>
+                </div>
+                <div style={{ width: "1px", height: "40px", backgroundColor: "var(--border-light)" }} />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Risk Index</span>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: (analyticsKPIs?.risk_score >= 60 ? "#e53e3e" : "#3182ce"), marginTop: "4px" }}>
+                    {analyticsKPIs?.risk_score?.toFixed(0) || 25}
+                  </div>
+                </div>
+                <div style={{ width: "1px", height: "40px", backgroundColor: "var(--border-light)" }} />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Est. Profit</span>
+                  <div style={{ fontSize: "1.1rem", fontWeight: "900", color: "#38a169", marginTop: "6px" }}>
+                    Rs. {analyticsKPIs?.projected_profit?.toLocaleString() || 0}
+                  </div>
+                </div>
+              </div>
+              <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); onNavigateToAnalytics(); }} style={{ width: "100%", height: "38px" }}>
+                View Full Analytics ➔
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Soil health status */}
         <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column" }}>
           <h2 style={{ fontSize: "1.25rem", marginBottom: "20px", color: "var(--text-primary)", fontWeight: "700" }}>📊 Recent Soil Health</h2>

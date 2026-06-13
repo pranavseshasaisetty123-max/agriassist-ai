@@ -11,6 +11,7 @@ from app.models.farm_planner import FarmPlan, FarmTask
 from app.models.risk_alert import RiskAlert
 from app.models.consult_agent import ConsultationHistory
 from app.models.notification import Notification
+from app.models.farm_analytics import FarmAnalyticsSnapshot
 
 __all__ = [
     "Base",
@@ -30,6 +31,7 @@ __all__ = [
     "FarmTask",
     "RiskAlert",
     "ConsultationHistory",
-    "Notification"
+    "Notification",
+    "FarmAnalyticsSnapshot"
 ]
 

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 from app.core.config import settings
-from app.api import auth, farmers, chat, soil, weather, disease, crop_recommendation, market_intelligence, yield_prediction, farm_planner, risk_intelligence, consult_agent, notification
+from app.api import auth, farmers, chat, soil, weather, disease, crop_recommendation, market_intelligence, yield_prediction, farm_planner, risk_intelligence, consult_agent, notification, farm_analytics
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -34,6 +34,7 @@ app.include_router(farm_planner.router, prefix=f"{settings.API_V1_STR}/farm-plan
 app.include_router(risk_intelligence.router, prefix=f"{settings.API_V1_STR}/risk-intelligence", tags=["risk-intelligence"])
 app.include_router(consult_agent.router, prefix=f"{settings.API_V1_STR}/consult-agent", tags=["consult-agent"])
 app.include_router(notification.router, prefix=f"{settings.API_V1_STR}/notifications", tags=["notifications"])
+app.include_router(farm_analytics.router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])
 
 
 

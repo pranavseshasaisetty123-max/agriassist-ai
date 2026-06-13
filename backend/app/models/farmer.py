@@ -27,4 +27,5 @@ class Farmer(Base):
     risk_alerts = relationship("RiskAlert", back_populates="farmer", cascade="all, delete-orphan")
     consultations = relationship("ConsultationHistory", back_populates="farmer", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="farmer", cascade="all, delete-orphan")
+    farm_analytics_snapshots = relationship("FarmAnalyticsSnapshot", back_populates="farmer", cascade="all, delete-orphan")
 

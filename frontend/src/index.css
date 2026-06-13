@@ -43,6 +43,27 @@
   --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+/* Dark Mode Theme Variables */
+.dark-theme {
+  --primary-lightness: 35%;
+  --primary-soft: hsl(var(--primary-hue), 30%, 12%);
+  
+  --bg-app: #080d0a;
+  --bg-surface: rgba(19, 34, 25, 0.85);
+  --bg-card: #132219;
+  
+  --text-primary: #f0fff4;
+  --text-secondary: #a3b8ad;
+  --text-muted: #6b7d74;
+  
+  --border-light: rgba(56, 161, 105, 0.15);
+  --border-focus: hsla(var(--primary-hue), var(--primary-sat), var(--primary-lightness), 0.6);
+  
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
 /* Base Styles & Resets */
 * {
   box-sizing: border-box;

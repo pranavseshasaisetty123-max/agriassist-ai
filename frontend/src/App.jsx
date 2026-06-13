@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import LoginPage from "./features/auth/pages/LoginPage";
 import RegisterPage from "./features/auth/pages/RegisterPage";
 import ChatPage from "./features/chat/pages/ChatPage";
+import LandingPage from "./pages/LandingPage";
+import { ToastContainer } from "./components/Toast";
 
 // Component to protect authenticated routes
 const ProtectedRoute = ({ children }) => {
@@ -51,8 +53,12 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
+      <ToastContainer />
       <Router>
         <Routes>
+          {/* Public Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Public Authentication Routes */}
           <Route
             path="/login"
@@ -82,7 +88,6 @@ function App() {
           />
 
           {/* Default Routing Redirects */}
-          <Route path="/" element={<Navigate to="/chat" replace />} />
           <Route path="*" element={<Navigate to="/chat" replace />} />
         </Routes>
       </Router>

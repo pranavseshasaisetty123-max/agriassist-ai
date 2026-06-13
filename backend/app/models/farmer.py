@@ -14,6 +14,12 @@ class Farmer(Base):
     location = Column(String(255), nullable=True)
     contact_number = Column(String(20), nullable=True)
     active_farm_id = Column(Integer, ForeignKey("farms.id", ondelete="SET NULL", use_alter=True, name="fk_farmer_active_farm"), nullable=True)
+    
+    theme_preference = Column(String(50), server_default="dark", nullable=True)
+    email_notifications = Column(Integer, server_default="1", nullable=True)
+    push_notifications = Column(Integer, server_default="1", nullable=True)
+    default_crop = Column(String(100), nullable=True)
+    default_soil_type = Column(String(100), nullable=True)
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

@@ -13,6 +13,8 @@ import ConsultAgentPage from "../../../pages/ConsultAgentPage";
 import NotificationCenterPage from "../../../pages/NotificationCenterPage";
 import FarmAnalyticsPage from "../../../pages/FarmAnalyticsPage";
 import FarmPortfolioPage from "../../../pages/FarmPortfolioPage";
+import SettingsPage from "../../../pages/SettingsPage";
+import HelpCenterPage from "../../../pages/HelpCenterPage";
 import "./Chat.css";
 
 const ChatPage = () => {
@@ -40,6 +42,21 @@ const ChatPage = () => {
       fetchFarmsList();
     }
   }, [currentFarmer?.active_farm_id]);
+
+  useEffect(() => {
+    const applySavedTheme = async () => {
+      try {
+        const response = await api.get("/farmers/settings");
+        const theme = response.data.theme_preference;
+        document.body.classList.toggle("dark-theme", theme !== "light");
+      } catch (err) {
+        console.error("Failed to load theme preference:", err);
+      }
+    };
+    if (currentFarmer) {
+      applySavedTheme();
+    }
+  }, [currentFarmer]);
 
   const fetchUnreadCount = async () => {
     try {
@@ -184,7 +201,7 @@ const ChatPage = () => {
   };
 
   const getHeaderTitle = () => {
-    if (showProfileSettings) return "Farmer Settings";
+    if (showProfileSettings) return "Settings Center";
     switch (activeTab) {
       case "dashboard":
         return "AgriAssist Dashboard";
@@ -218,7 +235,7 @@ const ChatPage = () => {
   };
 
   const getHeaderStatus = () => {
-    if (showProfileSettings) return "Manage personal parameters";
+    if (showProfileSettings) return "Manage default configurations and profile attributes";
     switch (activeTab) {
       case "dashboard":
         return `Welcome back, ${currentFarmer?.first_name || "Farmer"}`;
@@ -407,6 +424,16 @@ const ChatPage = () => {
             <span className="session-icon">💬</span>
             <span className="session-title-text">Consult Agent</span>
           </div>
+          <div
+            className={`session-item-row ${activeTab === "help-center" && !showProfileSettings ? "active-item" : ""}`}
+            onClick={() => {
+              setActiveTab("help-center");
+              setShowProfileSettings(false);
+            }}
+          >
+            <span className="session-icon">📖</span>
+            <span className="session-title-text">Help Center</span>
+          </div>
         </div>
 
         {/* Context-aware Chat Section */}
@@ -547,76 +574,8 @@ const ChatPage = () => {
         </header>
 
         {showProfileSettings ? (
-          /* Profile Settings Screen */
-          <div className="profile-view-wrapper animate-fade-in">
-            <div className="profile-form-card glass">
-              <h3 className="form-card-title">User Information</h3>
-              <p className="form-card-subtitle">Keep details up to date for relevant local guidance.</p>
-              
-              {profileAlert.text && (
-                <div className={`profile-alert profile-alert-${profileAlert.type} animate-fade-in`}>
-                  {profileAlert.text}
-                </div>
-              )}
-
-              <form onSubmit={handleProfileUpdate} className="profile-form">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="first_name">First Name</label>
-                    <input
-                      type="text"
-                      id="first_name"
-                      className="form-input"
-                      value={profileForm.first_name}
-                      onChange={(e) => setProfileForm({ ...profileForm, first_name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="last_name">Last Name</label>
-                    <input
-                      type="text"
-                      id="last_name"
-                      className="form-input"
-                      value={profileForm.last_name}
-                      onChange={(e) => setProfileForm({ ...profileForm, last_name: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Email Address (Cannot change)</label>
-                  <input type="text" className="form-input" value={currentFarmer?.email || ""} disabled style={{ backgroundColor: "#f4f6f5", color: "var(--text-muted)" }} />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="location">Location (State/District)</label>
-                    <input
-                      type="text"
-                      id="location"
-                      className="form-input"
-                      value={profileForm.location}
-                      onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="contact_number">Contact Number</label>
-                    <input
-                      type="text"
-                      id="contact_number"
-                      className="form-input"
-                      value={profileForm.contact_number}
-                      onChange={(e) => setProfileForm({ ...profileForm, contact_number: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <button type="submit" className="btn btn-primary">Save Profile</button>
-              </form>
-            </div>
-          </div>
+          /* Settings Center Screen */
+          <SettingsPage />
         ) : activeTab === "dashboard" ? (
           /* Dashboard Home Overview Tab */
           <DashboardOverview
@@ -665,6 +624,9 @@ const ChatPage = () => {
         ) : activeTab === "notifications" ? (
           /* Notification Center Page Tab */
           <NotificationCenterPage key={currentFarmer?.active_farm_id} onUpdateUnread={setUnreadCount} />
+        ) : activeTab === "help-center" ? (
+          /* Help Center Page Tab */
+          <HelpCenterPage />
         ) : (
           /* Consult Agent Chat Window Screen Tab */
           <div className="chat-window-wrapper">

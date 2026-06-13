@@ -27,11 +27,26 @@ const AdvisoryWidget = () => {
   const getSeverityStyles = (sev) => {
     switch (sev.toLowerCase()) {
       case "critical":
-        return { color: "#e53e3e", bg: "#fff5f5", border: "#f8b4b4", icon: "🚨" };
+        return {
+          color: "var(--advisory-critical-text)",
+          bg: "var(--advisory-critical-bg)",
+          border: "var(--advisory-critical-border)",
+          icon: "🚨"
+        };
       case "warning":
-        return { color: "#dd6b20", bg: "#fffaf0", border: "#fbd38d", icon: "⚠️" };
+        return {
+          color: "var(--advisory-warning-text)",
+          bg: "var(--advisory-warning-bg)",
+          border: "var(--advisory-warning-border)",
+          icon: "⚠️"
+        };
       default:
-        return { color: "var(--primary)", bg: "var(--primary-soft)", border: "var(--border-light)", icon: "💡" };
+        return {
+          color: "var(--advisory-info-text)",
+          bg: "var(--advisory-info-bg)",
+          border: "var(--advisory-info-border)",
+          icon: "💡"
+        };
     }
   };
 
@@ -77,7 +92,20 @@ const AdvisoryWidget = () => {
         <button
           className="btn btn-secondary"
           onClick={fetchAdvisory}
-          style={{ padding: "6px 12px", fontSize: "0.75rem", border: `1px solid ${styles.color}`, color: styles.color }}
+          style={{
+            padding: "6px 12px",
+            fontSize: "0.75rem",
+            border: `1px solid ${styles.color}`,
+            color: styles.color,
+            backgroundColor: "transparent",
+            transition: "var(--transition-smooth)"
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = styles.bg;
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
         >
           🔄 Refresh
         </button>
@@ -90,10 +118,12 @@ const AdvisoryWidget = () => {
             style={{
               padding: "12px 16px",
               backgroundColor: styles.bg,
+              border: `1px solid ${styles.border}`,
               borderRadius: "var(--radius-sm)",
               fontSize: "0.875rem",
               lineHeight: "1.4",
-              color: "var(--text-primary)"
+              color: "var(--text-primary)",
+              transition: "var(--transition-smooth)"
             }}
           >
             {point}

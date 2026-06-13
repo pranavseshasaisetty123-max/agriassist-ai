@@ -12,10 +12,11 @@ import RiskWarningPage from "../../risk-intelligence/pages/RiskWarningPage";
 import ConsultAgentPage from "../../../pages/ConsultAgentPage";
 import NotificationCenterPage from "../../../pages/NotificationCenterPage";
 import FarmAnalyticsPage from "../../../pages/FarmAnalyticsPage";
+import FarmPortfolioPage from "../../../pages/FarmPortfolioPage";
 import "./Chat.css";
 
 const ChatPage = () => {
-  const { currentFarmer, logout } = useAuth();
+  const { currentFarmer, logout, reloadProfile } = useAuth();
   
   const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, soil, chat
   const [unreadCount, setUnreadCount] = useState(0);
@@ -23,6 +24,22 @@ const ChatPage = () => {
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
+  const [farmsList, setFarmsList] = useState([]);
+
+  const fetchFarmsList = async () => {
+    try {
+      const response = await api.get("/farms");
+      setFarmsList(response.data);
+    } catch (error) {
+      console.error("Failed to fetch farms list in header:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (currentFarmer) {
+      fetchFarmsList();
+    }
+  }, [currentFarmer?.active_farm_id]);
 
   const fetchUnreadCount = async () => {
     try {
@@ -171,6 +188,8 @@ const ChatPage = () => {
     switch (activeTab) {
       case "dashboard":
         return "AgriAssist Dashboard";
+      case "portfolio":
+        return "Farm Portfolio & Holdings";
       case "analytics":
         return "Farm Analytics Dashboard";
       case "soil":
@@ -203,6 +222,8 @@ const ChatPage = () => {
     switch (activeTab) {
       case "dashboard":
         return `Welcome back, ${currentFarmer?.first_name || "Farmer"}`;
+      case "portfolio":
+        return "View and switch between your farms, view aggregated holdings";
       case "analytics":
         return "Real-time metrics, profit projections, and PDF report downloads";
       case "soil":
@@ -260,6 +281,16 @@ const ChatPage = () => {
           >
             <span className="session-icon">📊</span>
             <span className="session-title-text">Analytics</span>
+          </div>
+          <div
+            className={`session-item-row ${activeTab === "portfolio" && !showProfileSettings ? "active-item" : ""}`}
+            onClick={() => {
+              setActiveTab("portfolio");
+              setShowProfileSettings(false);
+            }}
+          >
+            <span className="session-icon">🏡</span>
+            <span className="session-title-text">Farm Portfolio</span>
           </div>
           <div
             className={`session-item-row ${activeTab === "soil" && !showProfileSettings ? "active-item" : ""}`}
@@ -430,6 +461,46 @@ const ChatPage = () => {
             <p className="header-status">{getHeaderStatus()}</p>
           </div>
           <div className="header-actions">
+            {farmsList.length > 0 ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginRight: "16px" }}>
+                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>Active Farm:</span>
+                <select
+                  value={currentFarmer?.active_farm_id || ""}
+                  onChange={async (e) => {
+                    const selectedId = e.target.value;
+                    if (selectedId) {
+                      try {
+                        await api.post(`/farms/${selectedId}/activate`);
+                        await reloadProfile();
+                      } catch (err) {
+                        console.error("Failed to switch active farm:", err);
+                      }
+                    }
+                  }}
+                  style={{
+                    backgroundColor: "var(--bg-card)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-light)",
+                    borderRadius: "var(--radius-sm)",
+                    padding: "6px 12px",
+                    fontSize: "0.85rem",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    outline: "none",
+                    boxShadow: "var(--shadow-sm)",
+                    fontFamily: "'Outfit', sans-serif"
+                  }}
+                >
+                  {farmsList.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginRight: "16px" }}>
+                <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "var(--text-muted)", whiteSpace: "nowrap" }}>No Active Farm</span>
+              </div>
+            )}
             <button
               className={`btn btn-secondary ${activeTab === "notifications" ? "btn-active" : ""}`}
               onClick={() => {
@@ -549,6 +620,7 @@ const ChatPage = () => {
         ) : activeTab === "dashboard" ? (
           /* Dashboard Home Overview Tab */
           <DashboardOverview
+            key={currentFarmer?.active_farm_id}
             onNavigateToChat={() => setActiveTab("chat")}
             onNavigateToSoil={() => setActiveTab("soil")}
             onNavigateToMarket={() => setActiveTab("market-intelligence")}
@@ -558,37 +630,41 @@ const ChatPage = () => {
             onNavigateToConsultant={() => setActiveTab("consult-agent")}
             onNavigateToNotifications={() => setActiveTab("notifications")}
             onNavigateToAnalytics={() => setActiveTab("analytics")}
+            onNavigateToPortfolio={() => setActiveTab("portfolio")}
           />
+        ) : activeTab === "portfolio" ? (
+          /* Farm Portfolio Page Tab */
+          <FarmPortfolioPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "analytics" ? (
           /* Farm Analytics Page Tab */
-          <FarmAnalyticsPage />
+          <FarmAnalyticsPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "soil" ? (
           /* Soil Health Analysis Tab */
-          <SoilAnalyzerPage />
+          <SoilAnalyzerPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "disease" ? (
           /* Disease Detection Page Tab */
-          <DiseaseDetectionPage />
+          <DiseaseDetectionPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "crop-recommendations" ? (
           /* Smart Crop Recommendations Tab */
-          <CropRecommendationsPage />
+          <CropRecommendationsPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "market-intelligence" ? (
           /* Market Intelligence Dashboard Tab */
-          <MarketIntelligencePage />
+          <MarketIntelligencePage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "yield-prediction" ? (
           /* Crop Yield Prediction Dashboard Tab */
-          <YieldPredictionPage />
+          <YieldPredictionPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "farm-planner" ? (
           /* Farm Planner Dashboard Tab */
-          <FarmPlannerPage />
+          <FarmPlannerPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "risk-intelligence" ? (
           /* Risk Warning Dashboard Tab */
-          <RiskWarningPage onNavigateToPlanner={() => setActiveTab("farm-planner")} />
+          <RiskWarningPage key={currentFarmer?.active_farm_id} onNavigateToPlanner={() => setActiveTab("farm-planner")} />
         ) : activeTab === "consult-agent" ? (
           /* Virtual Agronomist Tab */
-          <ConsultAgentPage onNavigateToPlanner={() => setActiveTab("farm-planner")} />
+          <ConsultAgentPage key={currentFarmer?.active_farm_id} onNavigateToPlanner={() => setActiveTab("farm-planner")} />
         ) : activeTab === "notifications" ? (
           /* Notification Center Page Tab */
-          <NotificationCenterPage onUpdateUnread={setUnreadCount} />
+          <NotificationCenterPage key={currentFarmer?.active_farm_id} onUpdateUnread={setUnreadCount} />
         ) : (
           /* Consult Agent Chat Window Screen Tab */
           <div className="chat-window-wrapper">

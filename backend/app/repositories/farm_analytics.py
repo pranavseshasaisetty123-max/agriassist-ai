@@ -14,10 +14,12 @@ class FarmAnalyticsRepository:
         projected_yield: float,
         active_crop_count: int,
         active_alert_count: int,
-        snapshot_json: str
+        snapshot_json: str,
+        farm_id: Optional[int] = None
     ) -> FarmAnalyticsSnapshot:
         db_obj = FarmAnalyticsSnapshot(
             farmer_id=farmer_id,
+            farm_id=farm_id,
             health_score=health_score,
             risk_score=risk_score,
             projected_profit=projected_profit,
@@ -32,23 +34,28 @@ class FarmAnalyticsRepository:
         return db_obj
 
     def list_by_farmer(
-        self, db: Session, farmer_id: int, limit: int = 50
+        self, db: Session, farmer_id: int, limit: int = 50, farm_id: Optional[int] = None
     ) -> List[FarmAnalyticsSnapshot]:
+        query = db.query(FarmAnalyticsSnapshot).filter(FarmAnalyticsSnapshot.farmer_id == farmer_id)
+        if farm_id is not None:
+            query = query.filter(FarmAnalyticsSnapshot.farm_id == farm_id)
         return (
-            db.query(FarmAnalyticsSnapshot)
-            .filter(FarmAnalyticsSnapshot.farmer_id == farmer_id)
+            query
             .order_by(FarmAnalyticsSnapshot.created_at.asc())
             .limit(limit)
             .all()
         )
 
-    def get_latest(self, db: Session, farmer_id: int) -> Optional[FarmAnalyticsSnapshot]:
+    def get_latest(self, db: Session, farmer_id: int, farm_id: Optional[int] = None) -> Optional[FarmAnalyticsSnapshot]:
+        query = db.query(FarmAnalyticsSnapshot).filter(FarmAnalyticsSnapshot.farmer_id == farmer_id)
+        if farm_id is not None:
+            query = query.filter(FarmAnalyticsSnapshot.farm_id == farm_id)
         return (
-            db.query(FarmAnalyticsSnapshot)
-            .filter(FarmAnalyticsSnapshot.farmer_id == farmer_id)
+            query
             .order_by(FarmAnalyticsSnapshot.created_at.desc())
             .first()
         )
+
 
     def delete(self, db: Session, snapshot: FarmAnalyticsSnapshot) -> None:
         db.delete(snapshot)

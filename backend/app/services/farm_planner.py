@@ -11,6 +11,8 @@ from app.repositories.farm_planner import farm_plan_repo, farm_task_repo
 from app.services.weather import weather_intelligence_service
 from app.services.ai import ai_service
 from app.schemas.farm_planner import FarmPlanGenerateRequest, ManualTaskCreateRequest
+from app.services.farm import farm_service
+
 
 logger = logging.getLogger("agriassist.farm_planner_service")
 
@@ -54,8 +56,10 @@ class FarmPlannerService:
         Fetches soil, weather, crop, and location variables, gets schedule from Gemini,
         and saves the new crop plan and chronological lifecycle tasks.
         """
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+
         # 1. Fetch latest Soil Report
-        reports = soil_report_repo.list_by_farmer(db, farmer_id=farmer.id, limit=1)
+        reports = soil_report_repo.list_by_farmer(db, farmer_id=farmer.id, limit=1, farm_id=active_farm.id)
         if not reports:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -111,6 +115,7 @@ class FarmPlannerService:
         plan = farm_plan_repo.create(
             db=db,
             farmer_id=farmer.id,
+            farm_id=active_farm.id,
             crop_name=req.crop_name,
             area_acres=req.area_acres,
             planned_start_date=req.planned_start_date,
@@ -138,8 +143,11 @@ class FarmPlannerService:
         self._refresh_task_statuses(plan.tasks)
         return plan
 
-    def list_plans(self, db: Session, farmer_id: int) -> List[FarmPlan]:
-        plans = farm_plan_repo.list_by_farmer(db, farmer_id)
+    def list_plans(self, db: Session, farmer_id: int, farmer: Optional[Farmer] = None) -> List[FarmPlan]:
+        if not farmer:
+            farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        plans = farm_plan_repo.list_by_farmer(db, farmer_id, farm_id=active_farm.id)
         for p in plans:
             self._refresh_task_statuses(p.tasks)
         return plans
@@ -189,16 +197,23 @@ class FarmPlannerService:
         )
         return task
 
-    def get_upcoming_activities(self, db: Session, farmer_id: int, days: int) -> List[FarmTask]:
-        tasks = farm_task_repo.get_upcoming_tasks(db, farmer_id, days)
+    def get_upcoming_activities(self, db: Session, farmer_id: int, days: int, farmer: Optional[Farmer] = None) -> List[FarmTask]:
+        if not farmer:
+            farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        tasks = farm_task_repo.get_upcoming_tasks(db, farmer_id, days, farm_id=active_farm.id)
         return self._refresh_task_statuses(tasks)
 
-    def get_overdue_activities(self, db: Session, farmer_id: int) -> List[FarmTask]:
-        tasks = farm_task_repo.get_overdue_tasks(db, farmer_id)
+    def get_overdue_activities(self, db: Session, farmer_id: int, farmer: Optional[Farmer] = None) -> List[FarmTask]:
+        if not farmer:
+            farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        tasks = farm_task_repo.get_overdue_tasks(db, farmer_id, farm_id=active_farm.id)
         # Mark overdue explicitly
         for t in tasks:
             t.status = "overdue"
         return tasks
+
 
     def delete_task(self, db: Session, farmer_id: int, task_id: int) -> None:
         task = self._check_task_ownership(db, farmer_id, task_id)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, func
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -13,10 +13,14 @@ class Farmer(Base):
     last_name = Column(String(100), nullable=False)
     location = Column(String(255), nullable=True)
     contact_number = Column(String(20), nullable=True)
+    active_farm_id = Column(Integer, ForeignKey("farms.id", ondelete="SET NULL", use_alter=True, name="fk_farmer_active_farm"), nullable=True)
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationships
+    farms = relationship("Farm", back_populates="farmer", foreign_keys="Farm.farmer_id", cascade="all, delete-orphan")
+
     sessions = relationship("ChatSession", back_populates="farmer", cascade="all, delete-orphan")
     soil_reports = relationship("SoilReport", back_populates="farmer", cascade="all, delete-orphan")
     disease_scans = relationship("DiseaseScan", back_populates="farmer", cascade="all, delete-orphan")

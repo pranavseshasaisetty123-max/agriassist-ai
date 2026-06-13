@@ -8,6 +8,7 @@ class YieldPrediction(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     farmer_id = Column(Integer, ForeignKey("farmers.id", ondelete="CASCADE"), nullable=False)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=True)
     crop_name = Column(String(150), nullable=False)
     predicted_yield = Column(Float, nullable=False)
     confidence_score = Column(Integer, nullable=False)
@@ -18,3 +19,4 @@ class YieldPrediction(Base):
 
     # Relationships
     farmer = relationship("Farmer", back_populates="yield_predictions")
+    farm = relationship("Farm", back_populates="yield_predictions")

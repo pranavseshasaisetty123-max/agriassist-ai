@@ -16,10 +16,12 @@ class YieldPredictionRepository:
         yield_category: str,
         prediction_factors: List[str],
         recommendations: List[str],
-        created_at: Optional[datetime] = None
+        created_at: Optional[datetime] = None,
+        farm_id: Optional[int] = None
     ) -> YieldPrediction:
         db_obj = YieldPrediction(
             farmer_id=farmer_id,
+            farm_id=farm_id,
             crop_name=crop_name,
             predicted_yield=predicted_yield,
             confidence_score=confidence_score,
@@ -39,11 +41,13 @@ class YieldPredictionRepository:
         return db.query(YieldPrediction).filter(YieldPrediction.id == pred_id).first()
 
     def list_by_farmer(
-        self, db: Session, farmer_id: int, limit: int = 100, offset: int = 0
+        self, db: Session, farmer_id: int, limit: int = 100, offset: int = 0, farm_id: Optional[int] = None
     ) -> List[YieldPrediction]:
+        query = db.query(YieldPrediction).filter(YieldPrediction.farmer_id == farmer_id)
+        if farm_id is not None:
+            query = query.filter(YieldPrediction.farm_id == farm_id)
         return (
-            db.query(YieldPrediction)
-            .filter(YieldPrediction.farmer_id == farmer_id)
+            query
             .order_by(YieldPrediction.created_at.desc(), YieldPrediction.id.desc())
             .offset(offset)
             .limit(limit)

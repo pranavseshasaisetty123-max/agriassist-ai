@@ -1,7 +1,7 @@
 import logging
 import json
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -11,6 +11,7 @@ from app.repositories.soil import soil_report_repo
 from app.repositories.yield_prediction import yield_prediction_repo
 from app.services.weather import weather_intelligence_service
 from app.services.ai import ai_service
+from app.services.farm import farm_service
 
 logger = logging.getLogger("agriassist.yield_pred_service")
 
@@ -45,8 +46,10 @@ class YieldPredictionService:
         Gathers latest Soil Report and current Weather data,
         invokes Gemini AI to estimate expected yield, and persists results.
         """
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+
         # 1. Fetch latest Soil Report
-        reports = soil_report_repo.list_by_farmer(db, farmer_id=farmer.id, limit=1)
+        reports = soil_report_repo.list_by_farmer(db, farmer_id=farmer.id, limit=1, farm_id=active_farm.id)
         if not reports:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -102,6 +105,7 @@ class YieldPredictionService:
             db_obj = yield_prediction_repo.create(
                 db=db,
                 farmer_id=farmer.id,
+                farm_id=active_farm.id,
                 crop_name=crop_name,
                 predicted_yield=ai_data.get("predicted_yield", 0.0),
                 confidence_score=ai_data.get("confidence_score", 0),
@@ -117,10 +121,14 @@ class YieldPredictionService:
                 detail="Failed to persist crop yield prediction metrics."
             )
 
-    def list_predictions(self, db: Session, farmer_id: int, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
+    def list_predictions(self, db: Session, farmer_id: int, limit: int = 100, offset: int = 0, farmer: Optional[Farmer] = None) -> List[Dict[str, Any]]:
         """List historical yield predictions run by the farmer."""
-        preds = yield_prediction_repo.list_by_farmer(db, farmer_id=farmer_id, limit=limit, offset=offset)
+        if not farmer:
+            farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        preds = yield_prediction_repo.list_by_farmer(db, farmer_id=farmer_id, limit=limit, offset=offset, farm_id=active_farm.id)
         return [self._format_pred_dict(p) for p in preds]
+
 
     def get_prediction(self, db: Session, farmer_id: int, pred_id: int) -> Dict[str, Any]:
         """Fetch details of a specific yield prediction after checking ownership."""

@@ -17,9 +17,11 @@ class RiskAlertRepository:
         description: str,
         prevention_steps: List[str],
         monitoring_advice: List[str],
+        farm_id: Optional[int] = None,
     ) -> RiskAlert:
         db_obj = RiskAlert(
             farmer_id=farmer_id,
+            farm_id=farm_id,
             crop_name=crop_name,
             alert_title=alert_title,
             category=category,
@@ -34,19 +36,23 @@ class RiskAlertRepository:
         db.refresh(db_obj)
         return db_obj
 
-    def list_by_farmer(self, db: Session, farmer_id: int) -> List[RiskAlert]:
+    def list_by_farmer(self, db: Session, farmer_id: int, farm_id: Optional[int] = None) -> List[RiskAlert]:
+        query = db.query(RiskAlert).filter(RiskAlert.farmer_id == farmer_id)
+        if farm_id is not None:
+            query = query.filter(RiskAlert.farm_id == farm_id)
         return (
-            db.query(RiskAlert)
-            .filter(RiskAlert.farmer_id == farmer_id)
+            query
             .order_by(RiskAlert.created_at.desc(), RiskAlert.id.desc())
             .all()
         )
 
-    def get_latest_run_alerts(self, db: Session, farmer_id: int) -> List[RiskAlert]:
+    def get_latest_run_alerts(self, db: Session, farmer_id: int, farm_id: Optional[int] = None) -> List[RiskAlert]:
         # Retrieve the latest alert created by this farmer
+        query = db.query(RiskAlert).filter(RiskAlert.farmer_id == farmer_id)
+        if farm_id is not None:
+            query = query.filter(RiskAlert.farm_id == farm_id)
         latest_alert = (
-            db.query(RiskAlert)
-            .filter(RiskAlert.farmer_id == farmer_id)
+            query
             .order_by(RiskAlert.created_at.desc())
             .first()
         )
@@ -54,14 +60,14 @@ class RiskAlertRepository:
             return []
         
         # Get all alerts sharing the exact same created_at timestamp
-        return (
-            db.query(RiskAlert)
-            .filter(
-                RiskAlert.farmer_id == farmer_id,
-                RiskAlert.created_at == latest_alert.created_at
-            )
-            .all()
+        query = db.query(RiskAlert).filter(
+            RiskAlert.farmer_id == farmer_id,
+            RiskAlert.created_at == latest_alert.created_at
         )
+        if farm_id is not None:
+            query = query.filter(RiskAlert.farm_id == farm_id)
+        return query.all()
+
 
 
 risk_alert_repo = RiskAlertRepository()

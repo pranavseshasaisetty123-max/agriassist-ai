@@ -8,6 +8,7 @@ class FarmPlan(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     farmer_id = Column(Integer, ForeignKey("farmers.id", ondelete="CASCADE"), nullable=False)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=True)
     crop_name = Column(String(150), nullable=False)
     area_acres = Column(Float, nullable=False)
     planned_start_date = Column(Date, nullable=False)
@@ -17,6 +18,7 @@ class FarmPlan(Base):
 
     # Relationships
     farmer = relationship("Farmer", back_populates="farm_plans")
+    farm = relationship("Farm", back_populates="farm_plans")
     tasks = relationship("FarmTask", back_populates="farm_plan", cascade="all, delete-orphan")
 
 

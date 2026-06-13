@@ -36,7 +36,7 @@ logger = logging.getLogger("agriassist.analytics_service")
 
 
 class FarmAnalyticsService:
-    def calculate_realtime_kpis(self, db: Session, farmer_id: int) -> Dict[str, Any]:
+    def calculate_realtime_kpis(self, db: Session, farmer_id: int, farm_id: Optional[int] = None) -> Dict[str, Any]:
         # 1. Health Score calculation (Base 75)
         health_score = 75.0
         latest_consult = db.query(ConsultationHistory).filter(
@@ -51,7 +51,10 @@ class FarmAnalyticsService:
                 pass
         else:
             # Fallback computation if no consultation history
-            soil = db.query(SoilReport).filter(SoilReport.farmer_id == farmer_id).order_by(SoilReport.tested_at.desc()).first()
+            soil_query = db.query(SoilReport).filter(SoilReport.farmer_id == farmer_id)
+            if farm_id is not None:
+                soil_query = soil_query.filter(SoilReport.farm_id == farm_id)
+            soil = soil_query.order_by(SoilReport.tested_at.desc()).first()
             if soil:
                 if 6.0 <= soil.ph <= 7.5:
                     health_score += 10
@@ -69,14 +72,14 @@ class FarmAnalyticsService:
             health_score -= min(bad_scans * 10, 30)
 
             # Deduct for overdue tasks
-            overdue_count = len(farm_task_repo.get_overdue_tasks(db, farmer_id))
+            overdue_count = len(farm_task_repo.get_overdue_tasks(db, farmer_id, farm_id=farm_id))
             health_score -= min(overdue_count * 5, 20)
             
             health_score = max(0.0, min(health_score, 100.0))
 
         # 2. Risk Score calculation (Base 25)
         risk_score = 25.0
-        alerts = risk_alert_repo.get_latest_run_alerts(db, farmer_id)
+        alerts = risk_alert_repo.get_latest_run_alerts(db, farmer_id, farm_id=farm_id)
         if alerts:
             # Weight based on active warnings
             computed_risk = 15.0
@@ -102,7 +105,10 @@ class FarmAnalyticsService:
             risk_score = max(0.0, min(risk_score, 100.0))
 
         # 3. Active Sowing plans
-        plans = db.query(FarmPlan).filter(FarmPlan.farmer_id == farmer_id, FarmPlan.status == "active").all()
+        plans_query = db.query(FarmPlan).filter(FarmPlan.farmer_id == farmer_id, FarmPlan.status == "active")
+        if farm_id is not None:
+            plans_query = plans_query.filter(FarmPlan.farm_id == farm_id)
+        plans = plans_query.all()
         active_crops = [p.crop_name for p in plans]
         active_crop_count = len(plans)
 
@@ -110,18 +116,24 @@ class FarmAnalyticsService:
         projected_yield = 0.0
         if active_crops:
             for crop in active_crops:
-                pred = db.query(YieldPrediction).filter(
+                pred_query = db.query(YieldPrediction).filter(
                     YieldPrediction.farmer_id == farmer_id,
                     YieldPrediction.crop_name == crop
-                ).order_by(YieldPrediction.created_at.desc()).first()
+                )
+                if farm_id is not None:
+                    pred_query = pred_query.filter(YieldPrediction.farm_id == farm_id)
+                pred = pred_query.order_by(YieldPrediction.created_at.desc()).first()
                 if pred:
                     projected_yield += pred.predicted_yield
         
         # If no yields matched active plans, sum latest predictions for distinct crops
         if projected_yield == 0.0:
-            distinct_predictions = db.query(YieldPrediction.crop_name, func.max(YieldPrediction.id).label("max_id")).filter(
+            distinct_predictions_query = db.query(YieldPrediction.crop_name, func.max(YieldPrediction.id).label("max_id")).filter(
                 YieldPrediction.farmer_id == farmer_id
-            ).group_by(YieldPrediction.crop_name).subquery()
+            )
+            if farm_id is not None:
+                distinct_predictions_query = distinct_predictions_query.filter(YieldPrediction.farm_id == farm_id)
+            distinct_predictions = distinct_predictions_query.group_by(YieldPrediction.crop_name).subquery()
             
             yield_records = db.query(YieldPrediction).join(
                 distinct_predictions, YieldPrediction.id == distinct_predictions.c.max_id
@@ -152,7 +164,7 @@ class FarmAnalyticsService:
 
         # 6. Active Alerts Count (unread notifications + active risk warnings)
         unread_notifs = notification_repo.list_by_farmer(db, farmer_id, is_read=False)
-        active_warnings = risk_alert_repo.get_latest_run_alerts(db, farmer_id)
+        active_warnings = risk_alert_repo.get_latest_run_alerts(db, farmer_id, farm_id=farm_id)
         active_alert_count = len(unread_notifs) + len(active_warnings)
 
         return {
@@ -165,13 +177,18 @@ class FarmAnalyticsService:
         }
 
     def generate_snapshot(self, db: Session, farmer: Farmer) -> FarmAnalyticsSnapshot:
-        kpis = self.calculate_realtime_kpis(db, farmer.id)
+        from app.services.farm import farm_service
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        kpis = self.calculate_realtime_kpis(db, farmer.id, farm_id=active_farm.id)
         
         # Compile snapshot metadata JSON
-        latest_plans = db.query(FarmPlan).filter(FarmPlan.farmer_id == farmer.id, FarmPlan.status == "active").all()
+        plans_query = db.query(FarmPlan).filter(FarmPlan.farmer_id == farmer.id, FarmPlan.status == "active")
+        if active_farm:
+            plans_query = plans_query.filter(FarmPlan.farm_id == active_farm.id)
+        latest_plans = plans_query.all()
         crops_meta = [{"crop_name": p.crop_name, "area_acres": p.area_acres} for p in latest_plans]
         
-        overdue_tasks = farm_task_repo.get_overdue_tasks(db, farmer.id)
+        overdue_tasks = farm_task_repo.get_overdue_tasks(db, farmer.id, farm_id=active_farm.id)
         overdue_meta = [{"task_id": t.id, "title": t.title, "planned_date": t.planned_date.isoformat()} for t in overdue_tasks]
 
         snapshot_data = {
@@ -191,6 +208,7 @@ class FarmAnalyticsService:
         return farm_analytics_repo.create(
             db=db,
             farmer_id=farmer.id,
+            farm_id=active_farm.id,
             health_score=kpis["health_score"],
             risk_score=kpis["risk_score"],
             projected_profit=kpis["projected_profit"],
@@ -200,12 +218,14 @@ class FarmAnalyticsService:
             snapshot_json=json.dumps(snapshot_data)
         )
 
-    def list_trends(self, db: Session, farmer_id: int) -> List[FarmAnalyticsSnapshot]:
-        return farm_analytics_repo.list_by_farmer(db, farmer_id)
+    def list_trends(self, db: Session, farmer_id: int, farm_id: Optional[int] = None) -> List[FarmAnalyticsSnapshot]:
+        return farm_analytics_repo.list_by_farmer(db, farmer_id, farm_id=farm_id)
 
     def get_dashboard_data(self, db: Session, farmer: Farmer) -> Dict[str, Any]:
-        kpis = self.calculate_realtime_kpis(db, farmer.id)
-        trends = self.list_trends(db, farmer.id)
+        from app.services.farm import farm_service
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        kpis = self.calculate_realtime_kpis(db, farmer.id, farm_id=active_farm.id)
+        trends = self.list_trends(db, farmer.id, farm_id=active_farm.id)
 
         # Generate automatic insights
         insights = []
@@ -222,7 +242,10 @@ class FarmAnalyticsService:
             insights.append("Pest and weather risk factors remain within optimal margins.")
 
         # Soil metric check for insight
-        soil = db.query(SoilReport).filter(SoilReport.farmer_id == farmer.id).order_by(SoilReport.tested_at.desc()).first()
+        soil_query = db.query(SoilReport).filter(SoilReport.farmer_id == farmer.id)
+        if active_farm:
+            soil_query = soil_query.filter(SoilReport.farm_id == active_farm.id)
+        soil = soil_query.order_by(SoilReport.tested_at.desc()).first()
         if soil:
             if soil.nitrogen < 30 or soil.phosphorus < 30 or soil.potassium < 80:
                 insights.append(f"Soil nutrient deficiencies detected in Nitrogen/Phosphorus. Follow custom fertilizer suggestions.")
@@ -234,7 +257,10 @@ class FarmAnalyticsService:
         
         # Distribution maps
         crop_distribution = {}
-        plans = db.query(FarmPlan).filter(FarmPlan.farmer_id == farmer.id, FarmPlan.status == "active").all()
+        plans_query = db.query(FarmPlan).filter(FarmPlan.farmer_id == farmer.id, FarmPlan.status == "active")
+        if active_farm:
+            plans_query = plans_query.filter(FarmPlan.farm_id == active_farm.id)
+        plans = plans_query.all()
         for p in plans:
             crop_distribution[p.crop_name] = crop_distribution.get(p.crop_name, 0.0) + p.area_acres
         if not crop_distribution:
@@ -249,6 +275,7 @@ class FarmAnalyticsService:
             else:
                 alert_distribution["Risk"] += 1
 
+
         return {
             "kpis": kpis,
             "trends": trends,
@@ -258,12 +285,19 @@ class FarmAnalyticsService:
         }
 
     def generate_pdf_report(self, db: Session, farmer: Farmer) -> io.BytesIO:
-        kpis = self.calculate_realtime_kpis(db, farmer.id)
+        from app.services.farm import farm_service
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        kpis = self.calculate_realtime_kpis(db, farmer.id, farm_id=active_farm.id)
         
         # Fetch detailed reports
-        soil = db.query(SoilReport).filter(SoilReport.farmer_id == farmer.id).order_by(SoilReport.tested_at.desc()).first()
-        alerts = risk_alert_repo.get_latest_run_alerts(db, farmer.id)
+        soil_query = db.query(SoilReport).filter(SoilReport.farmer_id == farmer.id)
+        if active_farm:
+            soil_query = soil_query.filter(SoilReport.farm_id == active_farm.id)
+        soil = soil_query.order_by(SoilReport.tested_at.desc()).first()
+
+        alerts = risk_alert_repo.get_latest_run_alerts(db, farmer.id, farm_id=active_farm.id)
         latest_consult = db.query(ConsultationHistory).filter(ConsultationHistory.farmer_id == farmer.id).order_by(ConsultationHistory.created_at.desc()).first()
+
 
         pdf_buffer = io.BytesIO()
         doc = SimpleDocTemplate(

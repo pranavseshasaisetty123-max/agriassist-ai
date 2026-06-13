@@ -5,10 +5,11 @@ from app.schemas.soil import SoilReportCreate
 
 
 class SoilReportRepository:
-    def create(self, db: Session, farmer_id: int, obj_in: SoilReportCreate) -> SoilReport:
+    def create(self, db: Session, farmer_id: int, obj_in: SoilReportCreate, farm_id: Optional[int] = None) -> SoilReport:
         """Create a new soil report entry."""
         db_obj = SoilReport(
             farmer_id=farmer_id,
+            farm_id=farm_id,
             ph=obj_in.ph,
             nitrogen=obj_in.nitrogen,
             phosphorus=obj_in.phosphorus,
@@ -27,12 +28,14 @@ class SoilReportRepository:
         return db.query(SoilReport).filter(SoilReport.id == report_id).first()
 
     def list_by_farmer(
-        self, db: Session, farmer_id: int, limit: int = 50, offset: int = 0
+        self, db: Session, farmer_id: int, limit: int = 50, offset: int = 0, farm_id: Optional[int] = None
     ) -> List[SoilReport]:
         """Retrieve all historical soil reports logged by a farmer."""
+        query = db.query(SoilReport).filter(SoilReport.farmer_id == farmer_id)
+        if farm_id is not None:
+            query = query.filter(SoilReport.farm_id == farm_id)
         return (
-            db.query(SoilReport)
-            .filter(SoilReport.farmer_id == farmer_id)
+            query
             .order_by(SoilReport.tested_at.desc(), SoilReport.id.desc())
             .offset(offset)
             .limit(limit)

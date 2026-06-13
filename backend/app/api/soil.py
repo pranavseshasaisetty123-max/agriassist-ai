@@ -19,7 +19,7 @@ def log_report(
 ):
     """Log a new soil test report."""
     return soil_report_service.create_report(
-        db, farmer_id=current_farmer.id, report_in=report_in
+        db, farmer_id=current_farmer.id, report_in=report_in, farmer=current_farmer
     )
 
 
@@ -32,8 +32,9 @@ def list_reports(
 ):
     """Retrieve all historical soil reports logged by the current farmer."""
     return soil_report_service.list_farmer_reports(
-        db, farmer_id=current_farmer.id, limit=limit, offset=offset
+        db, farmer_id=current_farmer.id, limit=limit, offset=offset, farmer=current_farmer
     )
+
 
 
 @router.get("/reports/{report_id}", response_model=SoilReportResponse)

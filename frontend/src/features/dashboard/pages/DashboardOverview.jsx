@@ -4,7 +4,7 @@ import WeatherWidget from "../components/WeatherWidget";
 import ForecastWidget from "../components/ForecastWidget";
 import AdvisoryWidget from "../components/AdvisoryWidget";
 
-const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner, onNavigateToRisk, onNavigateToConsultant, onNavigateToNotifications, onNavigateToAnalytics }) => {
+const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMarket, onNavigateToYield, onNavigateToPlanner, onNavigateToRisk, onNavigateToConsultant, onNavigateToNotifications, onNavigateToAnalytics, onNavigateToPortfolio }) => {
   const [latestReport, setLatestReport] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -28,6 +28,10 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
   // Analytics states
   const [analyticsKPIs, setAnalyticsKPIs] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+
+  // Portfolio states
+  const [portfolioKPIs, setPortfolioKPIs] = useState(null);
+  const [loadingPortfolio, setLoadingPortfolio] = useState(true);
 
   useEffect(() => {
     const fetchLatestReport = async () => {
@@ -106,12 +110,24 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
       }
     };
 
+    const fetchPortfolioKPIs = async () => {
+      try {
+        const response = await api.get("/farms/portfolio");
+        setPortfolioKPIs(response.data);
+      } catch (error) {
+        console.error("Failed to load portfolio KPIs for dashboard:", error);
+      } finally {
+        setLoadingPortfolio(false);
+      }
+    };
+
     fetchLatestReport();
     fetchActivities();
     fetchRiskAssessment();
     fetchLatestConsult();
     fetchNotifications();
     fetchAnalyticsKPIs();
+    fetchPortfolioKPIs();
   }, []);
 
   const getNutrientStatus = (val, name) => {
@@ -174,6 +190,25 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
 
       {/* 3. Action Cards Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px" }}>
+        <div className="glass" style={{
+          padding: "24px",
+          borderRadius: "var(--radius-md)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          transition: "var(--transition-bounce)",
+          cursor: "pointer"
+        }} onClick={onNavigateToPortfolio}>
+          <div>
+            <span style={{ fontSize: "2rem", marginBottom: "16px", display: "block" }}>🏡</span>
+            <h3 style={{ fontSize: "1.2rem", marginBottom: "8px", color: "var(--text-primary)" }}>Farm Portfolio Management</h3>
+            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: "1.5", marginBottom: "16px" }}>
+              Add, update, or switch between multiple farm sites to view localized weather, planning timelines, and soil diagnostics.
+            </p>
+          </div>
+          <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Manage farms ➔</span>
+        </div>
+
         <div className="glass" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
@@ -348,6 +383,46 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
 
       {/* 4. Split Status & Advisory Row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "24px" }}>
+        {/* Portfolio Summary Widget */}
+        <div className="glass hover-card" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column", cursor: "pointer" }} onClick={onNavigateToPortfolio}>
+          <h2 style={{ fontSize: "1.25rem", marginBottom: "20px", color: "var(--text-primary)", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+            🏡 Portfolio Summary
+          </h2>
+          {loadingPortfolio ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "var(--text-secondary)", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="dot-spinner"></span> Loading portfolio...
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1, justifyContent: "space-between" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Total Farms</span>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--primary)", marginTop: "4px" }}>
+                    {portfolioKPIs?.total_farms || 0}
+                  </div>
+                </div>
+                <div style={{ width: "1px", height: "40px", backgroundColor: "var(--border-light)" }} />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Total Area</span>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--primary)", marginTop: "4px" }}>
+                    {portfolioKPIs?.total_area?.toFixed(1) || 0} Ac
+                  </div>
+                </div>
+                <div style={{ width: "1px", height: "40px", backgroundColor: "var(--border-light)" }} />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Est. Profit</span>
+                  <div style={{ fontSize: "1.1rem", fontWeight: "900", color: "#38a169", marginTop: "6px" }}>
+                    Rs. {portfolioKPIs?.portfolio_profit?.toLocaleString() || 0}
+                  </div>
+                </div>
+              </div>
+              <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); onNavigateToPortfolio(); }} style={{ width: "100%", height: "38px" }}>
+                Manage Portfolio ➔
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Analytics Summary Widget */}
         <div className="glass hover-card" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column", cursor: "pointer" }} onClick={onNavigateToAnalytics}>
           <h2 style={{ fontSize: "1.25rem", marginBottom: "20px", color: "var(--text-primary)", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>

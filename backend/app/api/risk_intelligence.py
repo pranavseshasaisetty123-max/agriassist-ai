@@ -33,7 +33,7 @@ def get_warnings(
     current_farmer: Farmer = Depends(get_current_farmer),
 ):
     try:
-        return risk_intelligence_service.get_latest_warnings(db, current_farmer.id)
+        return risk_intelligence_service.get_latest_warnings(db, current_farmer.id, farmer=current_farmer)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -47,7 +47,8 @@ def get_history(
     current_farmer: Farmer = Depends(get_current_farmer),
 ):
     try:
-        return risk_intelligence_service.get_history(db, current_farmer.id)
+        return risk_intelligence_service.get_history(db, current_farmer.id, farmer=current_farmer)
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

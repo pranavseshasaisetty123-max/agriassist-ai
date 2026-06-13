@@ -8,6 +8,7 @@ class SoilReport(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     farmer_id = Column(Integer, ForeignKey("farmers.id", ondelete="CASCADE"), nullable=False)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=True)
     ph = Column(Float, nullable=False)
     nitrogen = Column(Float, nullable=False)
     phosphorus = Column(Float, nullable=False)
@@ -20,6 +21,7 @@ class SoilReport(Base):
 
     # Relationships
     farmer = relationship("Farmer", back_populates="soil_reports")
+    farm = relationship("Farm", back_populates="soil_reports")
     recommendation = relationship(
         "SoilRecommendation",
         back_populates="report",

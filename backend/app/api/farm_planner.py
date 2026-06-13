@@ -40,7 +40,7 @@ def get_plans(
     current_farmer: Farmer = Depends(get_current_farmer),
 ):
     try:
-        return farm_planner_service.list_plans(db, current_farmer.id)
+        return farm_planner_service.list_plans(db, current_farmer.id, farmer=current_farmer)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -142,7 +142,7 @@ def get_upcoming_activities(
     current_farmer: Farmer = Depends(get_current_farmer),
 ):
     try:
-        return farm_planner_service.get_upcoming_activities(db, current_farmer.id, days)
+        return farm_planner_service.get_upcoming_activities(db, current_farmer.id, days, farmer=current_farmer)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -156,7 +156,7 @@ def get_overdue_activities(
     current_farmer: Farmer = Depends(get_current_farmer),
 ):
     try:
-        return farm_planner_service.get_overdue_activities(db, current_farmer.id)
+        return farm_planner_service.get_overdue_activities(db, current_farmer.id, farmer=current_farmer)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

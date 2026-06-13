@@ -2,7 +2,7 @@ import logging
 import json
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from app.models.farmer import Farmer
 from app.models.risk_alert import RiskAlert
@@ -11,6 +11,8 @@ from app.repositories.soil import soil_report_repo
 from app.repositories.risk_intelligence import risk_alert_repo
 from app.services.weather import weather_intelligence_service
 from app.services.ai import ai_service
+from app.services.farm import farm_service
+
 
 logger = logging.getLogger("agriassist.risk_intel_service")
 
@@ -82,8 +84,10 @@ class RiskIntelligenceService:
         }
 
     def generate_risk_intelligence(self, db: Session, farmer: Farmer) -> Dict[str, Any]:
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+
         # 1. Fetch active crop plans
-        plans = farm_plan_repo.list_by_farmer(db, farmer.id)
+        plans = farm_plan_repo.list_by_farmer(db, farmer.id, farm_id=active_farm.id)
         active_plans = [p for p in plans if p.status == "active"]
         
         if not active_plans:
@@ -93,7 +97,7 @@ class RiskIntelligenceService:
             )
 
         # 2. Get latest soil metrics
-        reports = soil_report_repo.list_by_farmer(db, farmer_id=farmer.id, limit=1)
+        reports = soil_report_repo.list_by_farmer(db, farmer_id=farmer.id, limit=1, farm_id=active_farm.id)
         if reports:
             report = reports[0]
             soil_metrics = {
@@ -157,6 +161,7 @@ class RiskIntelligenceService:
             db_obj = risk_alert_repo.create(
                 db=db,
                 farmer_id=farmer.id,
+                farm_id=active_farm.id,
                 crop_name=alert.get("crop_name", crop_names[0]),
                 alert_title=alert.get("title", "Disease Risk Alert"),
                 category=alert.get("category", "disease"),
@@ -170,13 +175,20 @@ class RiskIntelligenceService:
 
         return self._calculate_overall_assessment(created_alerts)
 
-    def get_latest_warnings(self, db: Session, farmer_id: int) -> Dict[str, Any]:
-        alerts = risk_alert_repo.get_latest_run_alerts(db, farmer_id)
+    def get_latest_warnings(self, db: Session, farmer_id: int, farmer: Optional[Farmer] = None) -> Dict[str, Any]:
+        if not farmer:
+            farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        alerts = risk_alert_repo.get_latest_run_alerts(db, farmer_id, farm_id=active_farm.id)
         return self._calculate_overall_assessment(alerts)
 
-    def get_history(self, db: Session, farmer_id: int) -> List[Dict[str, Any]]:
-        alerts = risk_alert_repo.list_by_farmer(db, farmer_id)
+    def get_history(self, db: Session, farmer_id: int, farmer: Optional[Farmer] = None) -> List[Dict[str, Any]]:
+        if not farmer:
+            farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        alerts = risk_alert_repo.list_by_farmer(db, farmer_id, farm_id=active_farm.id)
         return [self._format_alert(a) for a in alerts]
+
 
 
 risk_intelligence_service = RiskIntelligenceService()

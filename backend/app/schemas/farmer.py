@@ -24,6 +24,7 @@ class FarmerUpdate(BaseModel):
 
 class FarmerResponse(FarmerBase):
     id: int
+    active_farm_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -32,3 +33,4 @@ class FarmerResponse(FarmerBase):
         json_encoders = {
             datetime: lambda dt: dt.isoformat()
         }
+

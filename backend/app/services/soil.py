@@ -1,16 +1,21 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from typing import List
+from typing import List, Optional
 from app.models.soil import SoilReport, SoilRecommendation
+from app.models.farmer import Farmer
 from app.repositories.soil import soil_report_repo, soil_rec_repo
 from app.schemas.soil import SoilReportCreate
 from app.services.ai import ai_service
+from app.services.farm import farm_service
 
 
 class SoilReportService:
-    def create_report(self, db: Session, farmer_id: int, report_in: SoilReportCreate) -> SoilReport:
+    def create_report(self, db: Session, farmer_id: int, report_in: SoilReportCreate, farmer: Optional[Farmer] = None) -> SoilReport:
         """Log a new soil report card."""
-        return soil_report_repo.create(db, farmer_id=farmer_id, obj_in=report_in)
+        if not farmer:
+            farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        return soil_report_repo.create(db, farmer_id=farmer_id, obj_in=report_in, farm_id=active_farm.id)
 
     def _verify_report_ownership(self, db: Session, report_id: int, farmer_id: int) -> SoilReport:
         """Assert report exists and belongs to the active farmer."""
@@ -32,10 +37,13 @@ class SoilReportService:
         return self._verify_report_ownership(db, report_id=report_id, farmer_id=farmer_id)
 
     def list_farmer_reports(
-        self, db: Session, farmer_id: int, limit: int = 50, offset: int = 0
+        self, db: Session, farmer_id: int, limit: int = 50, offset: int = 0, farmer: Optional[Farmer] = None
     ) -> List[SoilReport]:
         """Fetch all historical reports logged by the farmer."""
-        return soil_report_repo.list_by_farmer(db, farmer_id=farmer_id, limit=limit, offset=offset)
+        if not farmer:
+            farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+        active_farm = farm_service.get_or_create_active_farm(db, farmer)
+        return soil_report_repo.list_by_farmer(db, farmer_id=farmer_id, limit=limit, offset=offset, farm_id=active_farm.id)
 
     def delete_report(self, db: Session, farmer_id: int, report_id: int) -> None:
         """Delete a report entry after verifying owner permissions."""
@@ -44,6 +52,7 @@ class SoilReportService:
 
 
 soil_report_service = SoilReportService()
+
 
 
 class SoilRecommendationService:

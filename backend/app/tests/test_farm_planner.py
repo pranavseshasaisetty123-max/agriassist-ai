@@ -92,7 +92,9 @@ def test_generate_plan_success(mock_ai, client):
     assert soil_resp.status_code == status.HTTP_201_CREATED
 
     # 2. Generate plan
-    start_date_str = "2026-06-12"
+    today = date.today()
+    start_date_str = today.isoformat()
+    expected_harvest_date = (today + timedelta(days=90)).isoformat()
     plan_resp = client.post(
         "/api/v1/farm-planner/plans/generate",
         json={
@@ -107,17 +109,18 @@ def test_generate_plan_success(mock_ai, client):
     assert data["crop_name"] == "Tomato"
     assert data["area_acres"] == 2.5
     assert data["planned_start_date"] == start_date_str
-    assert data["expected_harvest_date"] == "2026-09-10" # 90 days offset
+    assert data["expected_harvest_date"] == expected_harvest_date
     assert len(data["tasks"]) == 2
     
     # Task 0 (offset 0)
     assert data["tasks"][0]["title"] == "Soil tilling"
-    assert data["tasks"][0]["planned_date"] == "2026-06-12"
+    assert data["tasks"][0]["planned_date"] == start_date_str
     assert data["tasks"][0]["status"] == "pending"
 
     # Task 1 (offset 5)
     assert data["tasks"][1]["title"] == "Irrigation check"
-    assert data["tasks"][1]["planned_date"] == "2026-06-17"
+    assert data["tasks"][1]["planned_date"] == (today + timedelta(days=5)).isoformat()
+
 
 
 @patch("app.services.farm_planner.ai_service.generate_farm_plan")

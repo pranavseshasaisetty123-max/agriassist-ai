@@ -8,6 +8,7 @@ class RiskAlert(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     farmer_id = Column(Integer, ForeignKey("farmers.id", ondelete="CASCADE"), nullable=False)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=True)
     crop_name = Column(String(150), nullable=False)
     alert_title = Column(String(255), nullable=False)
     category = Column(String(100), nullable=False)  # disease / pest / weather
@@ -20,3 +21,4 @@ class RiskAlert(Base):
 
     # Relationships
     farmer = relationship("Farmer", back_populates="risk_alerts")
+    farm = relationship("Farm", back_populates="risk_alerts")

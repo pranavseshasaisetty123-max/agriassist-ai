@@ -15,9 +15,11 @@ class FarmPlanRepository:
         planned_start_date: date,
         expected_harvest_date: date,
         status: str = "active",
+        farm_id: Optional[int] = None
     ) -> FarmPlan:
         db_obj = FarmPlan(
             farmer_id=farmer_id,
+            farm_id=farm_id,
             crop_name=crop_name,
             area_acres=area_acres,
             planned_start_date=planned_start_date,
@@ -32,10 +34,12 @@ class FarmPlanRepository:
     def get_by_id(self, db: Session, plan_id: int) -> Optional[FarmPlan]:
         return db.query(FarmPlan).filter(FarmPlan.id == plan_id).first()
 
-    def list_by_farmer(self, db: Session, farmer_id: int) -> List[FarmPlan]:
+    def list_by_farmer(self, db: Session, farmer_id: int, farm_id: Optional[int] = None) -> List[FarmPlan]:
+        query = db.query(FarmPlan).filter(FarmPlan.farmer_id == farmer_id)
+        if farm_id is not None:
+            query = query.filter(FarmPlan.farm_id == farm_id)
         return (
-            db.query(FarmPlan)
-            .filter(FarmPlan.farmer_id == farmer_id)
+            query
             .order_by(FarmPlan.created_at.desc())
             .all()
         )
@@ -100,11 +104,11 @@ class FarmTaskRepository:
         db.commit()
 
     def get_upcoming_tasks(
-        self, db: Session, farmer_id: int, days: int
+        self, db: Session, farmer_id: int, days: int, farm_id: Optional[int] = None
     ) -> List[FarmTask]:
         today = date.today()
         end_date = today + timedelta(days=days)
-        return (
+        query = (
             db.query(FarmTask)
             .join(FarmPlan)
             .filter(
@@ -116,16 +120,14 @@ class FarmTaskRepository:
                     FarmTask.planned_date <= end_date,
                 )
             )
-            .order_by(FarmTask.planned_date.asc())
-            .all()
         )
+        if farm_id is not None:
+            query = query.filter(FarmPlan.farm_id == farm_id)
+        return query.order_by(FarmTask.planned_date.asc()).all()
 
-    def get_overdue_tasks(self, db: Session, farmer_id: int) -> List[FarmTask]:
+    def get_overdue_tasks(self, db: Session, farmer_id: int, farm_id: Optional[int] = None) -> List[FarmTask]:
         today = date.today()
-        # Overdue tasks are those that have a planned date before today and are not completed or cancelled.
-        # We can also dynamically mark tasks overdue here or let the query find them.
-        # Let's write the query to retrieve tasks that are pending/overdue and planned date is in the past.
-        return (
+        query = (
             db.query(FarmTask)
             .join(FarmPlan)
             .filter(
@@ -136,9 +138,10 @@ class FarmTaskRepository:
                     FarmTask.planned_date < today,
                 )
             )
-            .order_by(FarmTask.planned_date.asc())
-            .all()
         )
+        if farm_id is not None:
+            query = query.filter(FarmPlan.farm_id == farm_id)
+        return query.order_by(FarmTask.planned_date.asc()).all()
 
 
 farm_plan_repo = FarmPlanRepository()

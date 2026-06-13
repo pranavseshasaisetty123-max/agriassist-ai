@@ -8,6 +8,7 @@ class FarmAnalyticsSnapshot(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     farmer_id = Column(Integer, ForeignKey("farmers.id", ondelete="CASCADE"), nullable=False)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=True)
     health_score = Column(Float, nullable=False)
     risk_score = Column(Float, nullable=False)
     projected_profit = Column(Float, nullable=False)
@@ -19,3 +20,4 @@ class FarmAnalyticsSnapshot(Base):
 
     # Relationships
     farmer = relationship("Farmer", back_populates="farm_analytics_snapshots")
+    farm = relationship("Farm", back_populates="farm_analytics_snapshots")

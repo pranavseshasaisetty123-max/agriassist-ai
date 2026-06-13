@@ -5,6 +5,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.core.database import Base, get_db
+from app.models import Farm
+
+
 
 # Connect to the test database
 TEST_DATABASE_URL = "mysql+pymysql://root:Pranav%4099@localhost:3306/agriassist_test"

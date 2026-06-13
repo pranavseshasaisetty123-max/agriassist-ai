@@ -43,9 +43,11 @@ def get_predictions_history(
         db=db,
         farmer_id=current_farmer.id,
         limit=limit,
-        offset=offset
+        offset=offset,
+        farmer=current_farmer
     )
     return history
+
 
 
 @router.get("/{prediction_id}", response_model=YieldPredictionResponse)

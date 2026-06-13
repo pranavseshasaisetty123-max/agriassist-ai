@@ -96,6 +96,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const reloadProfile = async () => {
+    try {
+      const response = await api.get("/farmers/me");
+      setCurrentFarmer(response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to reload profile:", error);
+    }
+  };
+
   const value = {
     currentFarmer,
     loading,
@@ -103,8 +113,10 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    reloadProfile,
     isAuthenticated: !!currentFarmer,
   };
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -56,21 +56,21 @@ const WeatherWidget = () => {
       minHeight: "140px",
       position: "relative",
       overflow: "hidden",
-      background: "linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 245, 242, 0.9) 100%)"
+      background: "linear-gradient(135deg, var(--weather-bg-start) 0%, var(--weather-bg-end) 100%)"
     }}>
       <div style={{ zIndex: 2 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
           <span style={{ fontSize: "1.1rem" }}>📍</span>
-          <span style={{ fontSize: "0.95rem", fontWeight: "600", color: "var(--text-primary)" }}>{weather.location}</span>
+          <span style={{ fontSize: "1rem", fontWeight: "700", color: "var(--text-primary)" }}>{weather.location}</span>
         </div>
-        <h2 style={{ fontSize: "2.5rem", fontWeight: "800", color: "var(--text-primary)", display: "flex", alignItems: "baseline" }}>
-          {weather.current_temp.toFixed(1)}<span style={{ fontSize: "1.5rem", fontWeight: "500", marginLeft: "2px" }}>°C</span>
+        <h2 style={{ fontSize: "3rem", fontWeight: "800", color: "var(--text-primary)", display: "flex", alignItems: "baseline", margin: "4px 0" }}>
+          {weather.current_temp.toFixed(1)}<span style={{ fontSize: "1.8rem", fontWeight: "500", marginLeft: "2px" }}>°C</span>
         </h2>
-        <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", fontWeight: "500", marginTop: "4px" }}>
+        <p style={{ fontSize: "0.95rem", color: "var(--text-secondary)", fontWeight: "600", marginTop: "4px" }}>
           {weather.current_condition}
         </p>
       </div>
-      <div style={{ fontSize: "4rem", zIndex: 1, userSelect: "none" }}>
+      <div style={{ fontSize: "4.5rem", zIndex: 1, userSelect: "none" }}>
         {getWeatherIcon(weather.current_condition)}
       </div>
     </div>

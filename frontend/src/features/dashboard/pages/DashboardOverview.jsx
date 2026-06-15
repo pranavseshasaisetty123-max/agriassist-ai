@@ -132,13 +132,13 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
 
   const getNutrientStatus = (val, name) => {
     if (name === "ph") {
-      if (val < 6.0) return { label: "Acidic", class: "status-low", color: "#e53e3e" };
-      if (val > 7.5) return { label: "Alkaline", class: "status-high", color: "#dd6b20" };
-      return { label: "Optimal", class: "status-optimal", color: "#38a169" };
+      if (val < 6.0) return { label: "Acidic", class: "status-low", color: "var(--advisory-critical-text)", bg: "var(--advisory-critical-bg)" };
+      if (val > 7.5) return { label: "Alkaline", class: "status-high", color: "var(--advisory-warning-text)", bg: "var(--advisory-warning-bg)" };
+      return { label: "Optimal", class: "status-optimal", color: "var(--advisory-info-text)", bg: "var(--advisory-info-bg)" };
     }
-    if (val < 30) return { label: "Low (Deficient)", class: "status-low", color: "#e53e3e" };
-    if (val < 80) return { label: "Moderate", class: "status-moderate", color: "#d69e2e" };
-    return { label: "Optimal", class: "status-optimal", color: "#38a169" };
+    if (val < 30) return { label: "Low (Deficient)", class: "status-low", color: "var(--advisory-critical-text)", bg: "var(--advisory-critical-bg)" };
+    if (val < 80) return { label: "Moderate", class: "status-moderate", color: "var(--advisory-warning-text)", bg: "var(--advisory-warning-bg)" };
+    return { label: "Optimal", class: "status-optimal", color: "var(--advisory-info-text)", bg: "var(--advisory-info-bg)" };
   };
 
   return (
@@ -190,13 +190,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
 
       {/* 3. Action Cards Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px" }}>
-        <div className="glass" style={{
+        <div className="glass hover-card" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transition: "var(--transition-bounce)",
           cursor: "pointer"
         }} onClick={onNavigateToPortfolio}>
           <div>
@@ -209,13 +208,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Manage farms ➔</span>
         </div>
 
-        <div className="glass" style={{
+        <div className="glass hover-card" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transition: "var(--transition-bounce)",
           cursor: "pointer"
         }} onClick={onNavigateToAnalytics}>
           <div>
@@ -228,13 +226,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>View analytics ➔</span>
         </div>
 
-        <div className="glass" style={{
+        <div className="glass hover-card" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transition: "var(--transition-bounce)",
           cursor: "pointer"
         }} onClick={onNavigateToSoil}>
           <div>
@@ -247,13 +244,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Configure reports ➔</span>
         </div>
 
-        <div className="glass" style={{
+        <div className="glass hover-card" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transition: "var(--transition-bounce)",
           cursor: "pointer"
         }} onClick={onNavigateToChat}>
           <div>
@@ -266,13 +262,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Consult agent ➔</span>
         </div>
 
-        <div className="glass" style={{
+        <div className="glass hover-card" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transition: "var(--transition-bounce)",
           cursor: "pointer"
         }} onClick={onNavigateToMarket}>
           <div>
@@ -285,13 +280,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Analyze markets ➔</span>
         </div>
 
-        <div className="glass" style={{
+        <div className="glass hover-card" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transition: "var(--transition-bounce)",
           cursor: "pointer"
         }} onClick={onNavigateToYield}>
           <div>
@@ -304,13 +298,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Predict yield ➔</span>
         </div>
 
-        <div className="glass" style={{
+        <div className="glass hover-card" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transition: "var(--transition-bounce)",
           cursor: "pointer"
         }} onClick={onNavigateToPlanner}>
           <div>
@@ -323,13 +316,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Plan operations ➔</span>
         </div>
 
-        <div className="glass" style={{
+        <div className="glass hover-card" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transition: "var(--transition-bounce)",
           cursor: "pointer"
         }} onClick={onNavigateToRisk}>
           <div>
@@ -342,13 +334,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Scan for risks ➔</span>
         </div>
 
-        <div className="glass" style={{
+        <div className="glass hover-card" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transition: "var(--transition-bounce)",
           cursor: "pointer"
         }} onClick={onNavigateToConsultant}>
           <div>
@@ -361,13 +352,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
           <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--primary)" }}>Ask agronomist ➔</span>
         </div>
 
-        <div className="glass" style={{
+        <div className="glass hover-card" style={{
           padding: "24px",
           borderRadius: "var(--radius-md)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          transition: "var(--transition-bounce)",
           cursor: "pointer"
         }} onClick={onNavigateToNotifications}>
           <div>
@@ -397,21 +387,21 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Total Farms</span>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--primary)", marginTop: "4px" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--text-primary)", marginTop: "4px" }}>
                     {portfolioKPIs?.total_farms || 0}
                   </div>
                 </div>
                 <div style={{ width: "1px", height: "40px", backgroundColor: "var(--border-light)" }} />
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Total Area</span>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--primary)", marginTop: "4px" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--text-primary)", marginTop: "4px" }}>
                     {portfolioKPIs?.total_area?.toFixed(1) || 0} Ac
                   </div>
                 </div>
                 <div style={{ width: "1px", height: "40px", backgroundColor: "var(--border-light)" }} />
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Est. Profit</span>
-                  <div style={{ fontSize: "1.1rem", fontWeight: "900", color: "#38a169", marginTop: "6px" }}>
+                  <div style={{ fontSize: "1.1rem", fontWeight: "900", color: "var(--advisory-info-text)", marginTop: "6px" }}>
                     Rs. {portfolioKPIs?.portfolio_profit?.toLocaleString() || 0}
                   </div>
                 </div>
@@ -437,21 +427,21 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Health Index</span>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--primary)", marginTop: "4px" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--text-primary)", marginTop: "4px" }}>
                     {analyticsKPIs?.health_score?.toFixed(0) || 75}
                   </div>
                 </div>
                 <div style={{ width: "1px", height: "40px", backgroundColor: "var(--border-light)" }} />
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Risk Index</span>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: (analyticsKPIs?.risk_score >= 60 ? "#e53e3e" : "#3182ce"), marginTop: "4px" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "900", color: (analyticsKPIs?.risk_score >= 60 ? "var(--advisory-critical-text)" : "var(--advisory-info-text)"), marginTop: "4px" }}>
                     {analyticsKPIs?.risk_score?.toFixed(0) || 25}
                   </div>
                 </div>
                 <div style={{ width: "1px", height: "40px", backgroundColor: "var(--border-light)" }} />
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: "700", textTransform: "uppercase" }}>Est. Profit</span>
-                  <div style={{ fontSize: "1.1rem", fontWeight: "900", color: "#38a169", marginTop: "6px" }}>
+                  <div style={{ fontSize: "1.1rem", fontWeight: "900", color: "var(--advisory-info-text)", marginTop: "6px" }}>
                     Rs. {analyticsKPIs?.projected_profit?.toLocaleString() || 0}
                   </div>
                 </div>
@@ -497,10 +487,11 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                   <span style={{
                     fontSize: "0.7rem",
                     fontWeight: "600",
-                    padding: "1px 6px",
+                    padding: "2px 8px",
                     borderRadius: "var(--radius-full)",
-                    backgroundColor: getNutrientStatus(latestReport.ph, "ph").color + "20",
-                    color: getNutrientStatus(latestReport.ph, "ph").color
+                    backgroundColor: getNutrientStatus(latestReport.ph, "ph").bg,
+                    color: getNutrientStatus(latestReport.ph, "ph").color,
+                    border: `1px solid ${getNutrientStatus(latestReport.ph, "ph").color}30`
                   }}>{getNutrientStatus(latestReport.ph, "ph").label}</span>
                 </div>
 
@@ -510,10 +501,11 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                   <span style={{
                     fontSize: "0.7rem",
                     fontWeight: "600",
-                    padding: "1px 6px",
+                    padding: "2px 8px",
                     borderRadius: "var(--radius-full)",
-                    backgroundColor: getNutrientStatus(latestReport.nitrogen, "n").color + "20",
-                    color: getNutrientStatus(latestReport.nitrogen, "n").color
+                    backgroundColor: getNutrientStatus(latestReport.nitrogen, "n").bg,
+                    color: getNutrientStatus(latestReport.nitrogen, "n").color,
+                    border: `1px solid ${getNutrientStatus(latestReport.nitrogen, "n").color}30`
                   }}>{getNutrientStatus(latestReport.nitrogen, "n").label}</span>
                 </div>
 
@@ -523,10 +515,11 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                   <span style={{
                     fontSize: "0.7rem",
                     fontWeight: "600",
-                    padding: "1px 6px",
+                    padding: "2px 8px",
                     borderRadius: "var(--radius-full)",
-                    backgroundColor: getNutrientStatus(latestReport.phosphorus, "p").color + "20",
-                    color: getNutrientStatus(latestReport.phosphorus, "p").color
+                    backgroundColor: getNutrientStatus(latestReport.phosphorus, "p").bg,
+                    color: getNutrientStatus(latestReport.phosphorus, "p").color,
+                    border: `1px solid ${getNutrientStatus(latestReport.phosphorus, "p").color}30`
                   }}>{getNutrientStatus(latestReport.phosphorus, "p").label}</span>
                 </div>
 
@@ -536,10 +529,11 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                   <span style={{
                     fontSize: "0.7rem",
                     fontWeight: "600",
-                    padding: "1px 6px",
+                    padding: "2px 8px",
                     borderRadius: "var(--radius-full)",
-                    backgroundColor: getNutrientStatus(latestReport.potassium, "k").color + "20",
-                    color: getNutrientStatus(latestReport.potassium, "k").color
+                    backgroundColor: getNutrientStatus(latestReport.potassium, "k").bg,
+                    color: getNutrientStatus(latestReport.potassium, "k").color,
+                    border: `1px solid ${getNutrientStatus(latestReport.potassium, "k").color}30`
                   }}>{getNutrientStatus(latestReport.potassium, "k").label}</span>
                 </div>
               </div>
@@ -563,11 +557,12 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                 {overdueCount > 0 && (
                   <div style={{
                     padding: "10px 12px",
-                    backgroundColor: "#fff5f5",
-                    color: "#e53e3e",
+                    backgroundColor: "var(--advisory-critical-bg)",
+                    color: "var(--advisory-critical-text)",
+                    border: "1px solid var(--advisory-critical-border)",
+                    borderLeft: "4px solid var(--advisory-critical-text)",
                     borderRadius: "var(--radius-sm)",
                     fontSize: "0.8rem",
-                    borderLeft: "4px solid #e53e3e",
                     marginBottom: "12px",
                     fontWeight: "600"
                   }}>
@@ -592,8 +587,9 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                       <span style={{
                         fontSize: "0.65rem",
                         fontWeight: "800",
-                        color: upcomingTask.priority === "high" ? "#e53e3e" : (upcomingTask.priority === "medium" ? "#dd6b20" : "#3182ce"),
-                        backgroundColor: upcomingTask.priority === "high" ? "#fff5f5" : (upcomingTask.priority === "medium" ? "#fffaf0" : "#ebf8ff"),
+                        color: upcomingTask.priority === "high" ? "var(--advisory-critical-text)" : (upcomingTask.priority === "medium" ? "var(--advisory-warning-text)" : "var(--advisory-info-text)"),
+                        backgroundColor: upcomingTask.priority === "high" ? "var(--advisory-critical-bg)" : (upcomingTask.priority === "medium" ? "var(--advisory-warning-bg)" : "var(--advisory-info-bg)"),
+                        border: `1px solid ${upcomingTask.priority === "high" ? "var(--advisory-critical-border)" : (upcomingTask.priority === "medium" ? "var(--advisory-warning-border)" : "var(--advisory-info-border)")}`,
                         padding: "2px 8px",
                         borderRadius: "4px",
                         textTransform: "uppercase"
@@ -640,9 +636,9 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                   <div style={{
                     padding: "24px 16px",
                     textAlign: "center",
-                    backgroundColor: "rgba(56, 161, 105, 0.08)",
-                    border: "1px dashed rgba(56, 161, 105, 0.3)",
-                    color: "#38a169",
+                    backgroundColor: "var(--advisory-info-bg)",
+                    border: "1px dashed var(--advisory-info-border)",
+                    color: "var(--advisory-info-text)",
                     borderRadius: "var(--radius-sm)",
                     fontSize: "0.85rem"
                   }}>
@@ -693,10 +689,9 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                         fill="none"
                         stroke={(() => {
                           const score = riskAssessment.overall_risk_score;
-                          if (score <= 30) return "#38a169";
-                          if (score <= 60) return "#dd6b20";
-                          if (score <= 80) return "#e53e3e";
-                          return "#822727";
+                          if (score <= 30) return "var(--advisory-info-text)";
+                          if (score <= 60) return "var(--advisory-warning-text)";
+                          return "var(--advisory-critical-text)";
                         })()}
                         strokeWidth="6"
                         strokeDasharray="188.5"
@@ -718,10 +713,9 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                     </span>
                     <h4 style={{ fontSize: "1.1rem", fontWeight: "800", margin: "2px 0 0", color: (() => {
                       const score = riskAssessment.overall_risk_score;
-                      if (score <= 30) return "#38a169";
-                      if (score <= 60) return "#dd6b20";
-                      if (score <= 80) return "#e53e3e";
-                      return "#822727";
+                      if (score <= 30) return "var(--advisory-info-text)";
+                      if (score <= 60) return "var(--advisory-warning-text)";
+                      return "var(--advisory-critical-text)";
                     })() }}>
                       {riskAssessment.risk_level}
                     </h4>
@@ -731,10 +725,10 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   {riskAssessment.alerts.slice(0, 2).map((alert, idx) => {
                     const alertColors = {
-                      critical: { color: "#822727", bg: "#fff5f5" },
-                      high: { color: "#e53e3e", bg: "#fff5f5" },
-                      medium: { color: "#dd6b20", bg: "#fffaf0" },
-                      low: { color: "#3182ce", bg: "#ebf8ff" }
+                      critical: { color: "var(--advisory-critical-text)", bg: "var(--advisory-critical-bg)", border: "var(--advisory-critical-border)" },
+                      high: { color: "var(--advisory-critical-text)", bg: "var(--advisory-critical-bg)", border: "var(--advisory-critical-border)" },
+                      medium: { color: "var(--advisory-warning-text)", bg: "var(--advisory-warning-bg)", border: "var(--advisory-warning-border)" },
+                      low: { color: "var(--advisory-info-text)", bg: "var(--advisory-info-bg)", border: "var(--advisory-info-border)" }
                     };
                     const colors = alertColors[alert.severity.toLowerCase()] || alertColors.low;
                     return (
@@ -744,6 +738,7 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                         color: colors.color,
                         borderRadius: "var(--radius-sm)",
                         fontSize: "0.8rem",
+                        border: `1px solid ${colors.border}`,
                         borderLeft: `4px solid ${colors.color}`,
                         display: "flex",
                         justifyContent: "space-between",
@@ -804,9 +799,9 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                         fill="none"
                         stroke={(() => {
                           const score = latestConsult.farm_health_score;
-                          if (score >= 80) return "#38a169";
-                          if (score >= 50) return "#dd6b20";
-                          return "#e53e3e";
+                          if (score >= 80) return "var(--advisory-info-text)";
+                          if (score >= 50) return "var(--advisory-warning-text)";
+                          return "var(--advisory-critical-text)";
                         })()}
                         strokeWidth="6"
                         strokeDasharray="188.5"
@@ -883,13 +878,13 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                 <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
                   <div style={{ flex: 1, padding: "12px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
                     <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Unread Alerts</span>
-                    <div style={{ fontSize: "1.6rem", fontWeight: "900", margin: "4px 0", color: notifications.filter(n => !n.is_read).length > 0 ? "var(--primary)" : "var(--text-muted)" }}>
+                    <div style={{ fontSize: "1.6rem", fontWeight: "900", margin: "4px 0", color: notifications.filter(n => !n.is_read).length > 0 ? "var(--advisory-info-text)" : "var(--text-muted)" }}>
                       {notifications.filter(n => !n.is_read).length}
                     </div>
                   </div>
                   <div style={{ flex: 1, padding: "12px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
                     <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Critical Alerts</span>
-                    <div style={{ fontSize: "1.6rem", fontWeight: "900", margin: "4px 0", color: notifications.filter(n => n.priority.toLowerCase() === "critical").length > 0 ? "#e53e3e" : "var(--text-muted)" }}>
+                    <div style={{ fontSize: "1.6rem", fontWeight: "900", margin: "4px 0", color: notifications.filter(n => n.priority.toLowerCase() === "critical").length > 0 ? "var(--advisory-critical-text)" : "var(--text-muted)" }}>
                       {notifications.filter(n => n.priority.toLowerCase() === "critical").length}
                     </div>
                   </div>
@@ -922,7 +917,7 @@ const DashboardOverview = ({ onNavigateToChat, onNavigateToSoil, onNavigateToMar
                               <span>{iconMap[notif.source_module.toLowerCase()] || "🔔"}</span>
                               <span style={{
                                 fontWeight: notif.priority.toLowerCase() === "critical" ? "700" : "500",
-                                color: notif.priority.toLowerCase() === "critical" ? "#e53e3e" : "var(--text-primary)",
+                                color: notif.priority.toLowerCase() === "critical" ? "var(--advisory-critical-text)" : "var(--text-primary)",
                                 whiteSpace: "nowrap",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",

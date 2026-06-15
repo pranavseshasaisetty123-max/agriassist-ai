@@ -156,17 +156,21 @@
   height: 72px;
   flex-shrink: 0;
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .header-title {
-  font-size: 1.25rem;
+  font-size: 1.4rem;
   color: var(--text-primary);
+  font-weight: 800;
 }
 
 .header-status {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .header-actions {

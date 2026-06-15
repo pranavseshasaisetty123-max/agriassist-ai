@@ -54,6 +54,11 @@
   --advisory-info-bg: var(--primary-soft);
   --advisory-info-text: var(--primary);
   --advisory-info-border: var(--border-light);
+
+  /* Weather Widget & Secondary Button Variables */
+  --weather-bg-start: hsla(142, 68%, 95%, 0.85);
+  --weather-bg-end: hsla(142, 40%, 90%, 0.85);
+  --btn-secondary-color: var(--primary);
 }
 
 /* Dark Mode Theme Variables */
@@ -88,6 +93,11 @@
   --advisory-info-bg: var(--primary-soft);
   --advisory-info-text: #48bb78;
   --advisory-info-border: rgba(72, 187, 120, 0.2);
+
+  /* Weather Widget & Secondary Button Variables */
+  --weather-bg-start: hsla(142, 35%, 12%, 0.85);
+  --weather-bg-end: hsla(142, 45%, 6%, 0.85);
+  --btn-secondary-color: #48bb78;
 }
 
 /* Base Styles & Resets */
@@ -119,6 +129,16 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-light);
   box-shadow: var(--shadow-md);
+}
+
+.hover-card {
+  transition: var(--transition-bounce);
+}
+
+.hover-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-lg), 0 0 0 2px var(--primary-glow);
 }
 
 /* Animations */
@@ -212,8 +232,8 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 
 .btn-secondary {
   background-color: transparent;
-  color: var(--primary);
-  border: 1px solid var(--primary);
+  color: var(--btn-secondary-color);
+  border: 1px solid var(--btn-secondary-color);
 }
 
 .btn-secondary:hover {

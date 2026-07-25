@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import { useLanguage } from "../../../context/LanguageContext";
 import api from "../../../services/api";
 import DashboardOverview from "../../dashboard/pages/DashboardOverview";
 import SoilAnalyzerPage from "../../soil/pages/SoilAnalyzerPage";
@@ -19,14 +20,29 @@ import "./Chat.css";
 
 const ChatPage = () => {
   const { currentFarmer, logout, reloadProfile } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   
-  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, soil, chat
+  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, soil, chat, etc.
   const [unreadCount, setUnreadCount] = useState(0);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const [farmsList, setFarmsList] = useState([]);
+  const [themeMode, setThemeMode] = useState("light");
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // Group collapse states
+  const [expandedGroups, setExpandedGroups] = useState({
+    farm: true,
+    aiTools: true,
+    insights: true,
+    system: true,
+  });
+
+  const toggleGroup = (groupKey) => {
+    setExpandedGroups((prev) => ({ ...prev, [groupKey]: !prev[groupKey] }));
+  };
 
   const fetchFarmsList = async () => {
     try {
@@ -47,8 +63,9 @@ const ChatPage = () => {
     const applySavedTheme = async () => {
       try {
         const response = await api.get("/farmers/settings");
-        const theme = response.data.theme_preference;
-        document.body.classList.toggle("dark-theme", theme !== "light");
+        const theme = response.data.theme_preference || "light";
+        setThemeMode(theme);
+        document.body.classList.toggle("dark-theme", theme === "dark");
       } catch (err) {
         console.error("Failed to load theme preference:", err);
       }
@@ -57,6 +74,17 @@ const ChatPage = () => {
       applySavedTheme();
     }
   }, [currentFarmer]);
+
+  const toggleTheme = async () => {
+    const nextTheme = themeMode === "dark" ? "light" : "dark";
+    setThemeMode(nextTheme);
+    document.body.classList.toggle("dark-theme", nextTheme === "dark");
+    try {
+      await api.put("/farmers/settings", { theme_preference: nextTheme });
+    } catch (err) {
+      console.error("Failed to save theme toggle:", err);
+    }
+  };
 
   const fetchUnreadCount = async () => {
     try {
@@ -76,19 +104,8 @@ const ChatPage = () => {
   const [isSending, setIsSending] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   
-  // Profile update form values
-  const [profileForm, setProfileForm] = useState({
-    first_name: currentFarmer?.first_name || "",
-    last_name: currentFarmer?.last_name || "",
-    location: currentFarmer?.location || "",
-    contact_number: currentFarmer?.contact_number || "",
-  });
-  const [profileAlert, setProfileAlert] = useState({ type: "", text: "" });
-  const { updateProfile } = useAuth();
-
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to latest message
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -99,7 +116,6 @@ const ChatPage = () => {
     }
   }, [messages, isSending, activeTab]);
 
-  // Load chat sessions on component mount
   const fetchSessions = async () => {
     try {
       const response = await api.get("/chat/sessions");
@@ -118,7 +134,6 @@ const ChatPage = () => {
     fetchSessions();
   }, []);
 
-  // Fetch messages when active session changes
   useEffect(() => {
     if (activeSessionId && activeTab === "chat") {
       const fetchMessages = async () => {
@@ -138,7 +153,6 @@ const ChatPage = () => {
     }
   }, [activeSessionId, activeTab]);
 
-  // Handle creating a new chat session
   const handleCreateSession = async () => {
     try {
       const title = prompt("Enter topic name (optional):") || "New Agricultural Query";
@@ -152,7 +166,6 @@ const ChatPage = () => {
     }
   };
 
-  // Handle sending a message
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!inputMessage.trim() || !activeSessionId || isSending) return;
@@ -165,14 +178,12 @@ const ChatPage = () => {
       const response = await api.post(`/chat/sessions/${activeSessionId}/messages`, {
         message_text: userPrompt,
       });
-      // Append user prompt and AI response to messages list
       setMessages((prev) => [
         ...prev,
         response.data.user_message,
         response.data.ai_response,
       ]);
       
-      // Update session's placement in list to be first
       setSessions((prevSessions) => {
         const active = prevSessions.find((s) => s.id === activeSessionId);
         const rest = prevSessions.filter((s) => s.id !== activeSessionId);
@@ -188,81 +199,79 @@ const ChatPage = () => {
     }
   };
 
-  // Handle updating profile parameters
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-    setProfileAlert({ type: "", text: "" });
-    try {
-      await updateProfile(profileForm);
-      setProfileAlert({ type: "success", text: "Profile settings saved successfully!" });
-    } catch (err) {
-      setProfileAlert({ type: "error", text: err });
-    }
+  const navigateTo = (tabName) => {
+    setActiveTab(tabName);
+    setShowProfileSettings(false);
+    setIsMobileOpen(false);
   };
 
   const getHeaderTitle = () => {
-    if (showProfileSettings) return "Settings Center";
+    if (showProfileSettings) return t("nav_settings");
     switch (activeTab) {
       case "dashboard":
-        return "AgriAssist Dashboard";
+        return t("nav_dashboard");
       case "portfolio":
-        return "Farm Portfolio & Holdings";
+        return t("nav_portfolio");
       case "analytics":
-        return "Farm Analytics Dashboard";
+        return t("nav_analytics");
       case "soil":
-        return "Soil Diagnostics Center";
+        return t("nav_soil_analyzer");
       case "disease":
-        return "Plant Disease Diagnostics";
+        return t("nav_disease_detection");
       case "crop-recommendations":
-        return "Smart Crop Recommendations";
+        return t("nav_crop_recommendations");
       case "market-intelligence":
-        return "Market Price Intelligence";
+        return t("nav_market_intelligence");
       case "yield-prediction":
-        return "Crop Yield Prediction";
+        return t("nav_yield_prediction");
       case "farm-planner":
-        return "Farm Planner & Scheduler";
+        return t("nav_planner");
       case "risk-intelligence":
-        return "Risk Early Warning System";
+        return t("nav_crop_intelligence");
       case "consult-agent":
-        return "Virtual Agronomist Consultant";
+        return t("nav_virtual_agronomist");
       case "notifications":
-        return "Smart Alert Center";
+        return t("nav_notifications");
+      case "help-center":
+        return t("nav_help");
       case "chat":
-        return sessions.find((s) => s.id === activeSessionId)?.title || "AI Consult Agent";
+        return sessions.find((s) => s.id === activeSessionId)?.title || t("nav_virtual_agronomist");
       default:
-        return "AgriAssist Agent";
+        return "AgriAssist AI";
     }
   };
 
   const getHeaderStatus = () => {
-    if (showProfileSettings) return "Manage default configurations and profile attributes";
+    if (showProfileSettings) return t("nav_settings");
     switch (activeTab) {
       case "dashboard":
-        return `Welcome back, ${currentFarmer?.first_name || "Farmer"}`;
+        return `${t("db_welcome")}, ${currentFarmer?.first_name || "Farmer"}`;
       case "portfolio":
-        return "View and switch between your farms, view aggregated holdings";
+        return t("nav_portfolio");
       case "analytics":
-        return "Real-time metrics, profit projections, and PDF report downloads";
+        return t("nav_analytics");
       case "soil":
-        return "Log and analyze soil parameters";
+        return t("nav_soil_analyzer");
       case "disease":
-        return "Upload leaves to analyze issues";
+        return t("nav_disease_detection");
       case "crop-recommendations":
-        return "AI-powered crop matches";
+        return t("nav_crop_recommendations");
       case "market-intelligence":
-        return "Live price tracking & profitability analyzer";
+        return t("nav_market_intelligence");
       case "yield-prediction":
-        return "Estimate expected crop returns per acre";
+        return t("nav_yield_prediction");
       case "farm-planner":
-        return "AI crop activities timeline & operational calendar";
+        return t("nav_planner");
       case "risk-intelligence":
-        return "Proactive AI pest, disease, and weather risk warnings";
+        return t("nav_crop_intelligence");
       case "consult-agent":
-        return "AI-powered unified farm advisor and recommendations coach";
+        return t("nav_virtual_agronomist");
       case "notifications":
-        return "Aggregate warnings, weather, yield, and planning task alerts";
+        return t("nav_notifications");
+      case "help-center":
+        return t("nav_help");
       case "chat":
-        return "AI Agronomist Active";
+        return t("nav_virtual_agronomist");
       default:
         return "";
     }
@@ -270,211 +279,213 @@ const ChatPage = () => {
 
   return (
     <div className="chat-layout-container">
-      {/* 1. Sidebar Panel */}
-      <aside className="chat-sidebar glass">
+      {/* Mobile Overlay */}
+      <div
+        className={`mobile-overlay ${isMobileOpen ? "mobile-open" : ""}`}
+        onClick={() => setIsMobileOpen(false)}
+      />
+
+      {/* 1. Grouped Sidebar Panel */}
+      <aside className={`chat-sidebar ${isMobileOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-brand">
           <span className="brand-icon">🌱</span>
           <span className="brand-title brand-font">AgriAssist AI</span>
         </div>
         
-        {/* Navigation Workspace Tabs */}
-        <div className="sidebar-tabs-nav" style={{ padding: "16px 12px 8px", display: "flex", flexDirection: "column", gap: "4px" }}>
+        {/* Navigation Workspace Scroll */}
+        <div className="sidebar-nav-scroll">
+          {/* Main Dashboard Navigation Item */}
           <div
             className={`session-item-row ${activeTab === "dashboard" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("dashboard");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">🌾</span>
-            <span className="session-title-text">Dashboard</span>
-          </div>
-          <div
-            className={`session-item-row ${activeTab === "analytics" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("analytics");
-              setShowProfileSettings(false);
-            }}
+            onClick={() => navigateTo("dashboard")}
           >
             <span className="session-icon">📊</span>
-            <span className="session-title-text">Analytics</span>
+            <span className="session-title-text">{t("nav_dashboard")}</span>
           </div>
-          <div
-            className={`session-item-row ${activeTab === "portfolio" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("portfolio");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">🏡</span>
-            <span className="session-title-text">Farm Portfolio</span>
-          </div>
-          <div
-            className={`session-item-row ${activeTab === "soil" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("soil");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">🧪</span>
-            <span className="session-title-text">Soil Analyzer</span>
-          </div>
-          <div
-            className={`session-item-row ${activeTab === "disease" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("disease");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">🔍</span>
-            <span className="session-title-text">Disease Detection</span>
-          </div>
-          <div
-            className={`session-item-row ${activeTab === "crop-recommendations" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("crop-recommendations");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">🌾</span>
-            <span className="session-title-text">Crop Recommendations</span>
-          </div>
-          <div
-            className={`session-item-row ${activeTab === "market-intelligence" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("market-intelligence");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">📈</span>
-            <span className="session-title-text">Market Intelligence</span>
-          </div>
-          <div
-            className={`session-item-row ${activeTab === "yield-prediction" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("yield-prediction");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">📊</span>
-            <span className="session-title-text">Yield Prediction</span>
-          </div>
-          <div
-            className={`session-item-row ${activeTab === "farm-planner" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("farm-planner");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">📅</span>
-            <span className="session-title-text">Farm Planner</span>
-          </div>
-          <div
-            className={`session-item-row ${activeTab === "risk-intelligence" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("risk-intelligence");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">🛡️</span>
-            <span className="session-title-text">Risk Warnings</span>
-          </div>
-          <div
-            className={`session-item-row ${activeTab === "consult-agent" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("consult-agent");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">🤖</span>
-            <span className="session-title-text">Virtual Agronomist</span>
-          </div>
-          <div
-            className={`session-item-row ${activeTab === "notifications" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("notifications");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">🔔</span>
-            <span className="session-title-text">Alert Center</span>
-            {unreadCount > 0 && (
-              <span
-                style={{
-                  backgroundColor: "#e53e3e",
-                  color: "white",
-                  borderRadius: "10px",
-                  padding: "2px 8px",
-                  fontSize: "0.7rem",
-                  fontWeight: "bold",
-                  marginLeft: "auto"
-                }}
-              >
-                {unreadCount}
-              </span>
+
+          {/* Group 1: My Farm */}
+          <div className="sidebar-group">
+            <div className="sidebar-group-header" onClick={() => toggleGroup("farm")}>
+              <span>{t("nav_my_farm")}</span>
+              <span>{expandedGroups.farm ? "▾" : "▸"}</span>
+            </div>
+            {expandedGroups.farm && (
+              <div className="sidebar-group-items">
+                <div
+                  className={`session-item-row ${activeTab === "portfolio" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("portfolio")}
+                >
+                  <span className="session-icon">🏡</span>
+                  <span className="session-title-text">{t("nav_portfolio")}</span>
+                </div>
+                <div
+                  className={`session-item-row ${activeTab === "farm-planner" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("farm-planner")}
+                >
+                  <span className="session-icon">📅</span>
+                  <span className="session-title-text">{t("nav_planner")}</span>
+                </div>
+                <div
+                  className={`session-item-row ${activeTab === "analytics" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("analytics")}
+                >
+                  <span className="session-icon">📈</span>
+                  <span className="session-title-text">{t("nav_analytics")}</span>
+                </div>
+              </div>
             )}
           </div>
-          <div
-            className={`session-item-row ${activeTab === "chat" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("chat");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">💬</span>
-            <span className="session-title-text">Consult Agent</span>
+
+          {/* Group 2: Crop Intelligence */}
+          <div className="sidebar-group">
+            <div className="sidebar-group-header" onClick={() => toggleGroup("aiTools")}>
+              <span>{t("nav_crop_intelligence")}</span>
+              <span>{expandedGroups.aiTools ? "▾" : "▸"}</span>
+            </div>
+            {expandedGroups.aiTools && (
+              <div className="sidebar-group-items">
+                <div
+                  className={`session-item-row ${activeTab === "soil" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("soil")}
+                >
+                  <span className="session-icon">🧪</span>
+                  <span className="session-title-text">{t("nav_soil_analyzer")}</span>
+                </div>
+                <div
+                  className={`session-item-row ${activeTab === "disease" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("disease")}
+                >
+                  <span className="session-icon">🔍</span>
+                  <span className="session-title-text">{t("nav_disease_detection")}</span>
+                </div>
+                <div
+                  className={`session-item-row ${activeTab === "crop-recommendations" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("crop-recommendations")}
+                >
+                  <span className="session-icon">🌾</span>
+                  <span className="session-title-text">{t("nav_crop_recommendations")}</span>
+                </div>
+              </div>
+            )}
           </div>
-          <div
-            className={`session-item-row ${activeTab === "help-center" && !showProfileSettings ? "active-item" : ""}`}
-            onClick={() => {
-              setActiveTab("help-center");
-              setShowProfileSettings(false);
-            }}
-          >
-            <span className="session-icon">📖</span>
-            <span className="session-title-text">Help Center</span>
+
+          {/* Group 3: Insights */}
+          <div className="sidebar-group">
+            <div className="sidebar-group-header" onClick={() => toggleGroup("insights")}>
+              <span>{t("nav_insights")}</span>
+              <span>{expandedGroups.insights ? "▾" : "▸"}</span>
+            </div>
+            {expandedGroups.insights && (
+              <div className="sidebar-group-items">
+                <div
+                  className={`session-item-row ${activeTab === "market-intelligence" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("market-intelligence")}
+                >
+                  <span className="session-icon">💰</span>
+                  <span className="session-title-text">{t("nav_market_intelligence")}</span>
+                </div>
+                <div
+                  className={`session-item-row ${activeTab === "yield-prediction" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("yield-prediction")}
+                >
+                  <span className="session-icon">📊</span>
+                  <span className="session-title-text">{t("nav_yield_prediction")}</span>
+                </div>
+                <div
+                  className={`session-item-row ${activeTab === "risk-intelligence" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("risk-intelligence")}
+                >
+                  <span className="session-icon">🛡️</span>
+                  <span className="session-title-text">{t("nav_risk_warnings")}</span>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Group 4: AI Assistant */}
+          <div className="sidebar-group">
+            <div className="sidebar-group-header" onClick={() => toggleGroup("system")}>
+              <span>{t("nav_ai_assistant")}</span>
+              <span>{expandedGroups.system ? "▾" : "▸"}</span>
+            </div>
+            {expandedGroups.system && (
+              <div className="sidebar-group-items">
+                <div
+                  className={`session-item-row ${activeTab === "consult-agent" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("consult-agent")}
+                >
+                  <span className="session-icon">🤖</span>
+                  <span className="session-title-text">{t("nav_virtual_agronomist")}</span>
+                </div>
+                <div
+                  className={`session-item-row ${activeTab === "notifications" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("notifications")}
+                >
+                  <span className="session-icon">🔔</span>
+                  <span className="session-title-text">{t("nav_notifications")}</span>
+                  {unreadCount > 0 && (
+                    <span className="saas-badge saas-badge-critical" style={{ marginLeft: "auto", padding: "1px 6px" }}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+                <div
+                  className={`session-item-row ${activeTab === "help-center" && !showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => navigateTo("help-center")}
+                >
+                  <span className="session-icon">📖</span>
+                  <span className="session-title-text">{t("nav_help")}</span>
+                </div>
+                <div
+                  className={`session-item-row ${showProfileSettings ? "active-item" : ""}`}
+                  onClick={() => {
+                    setShowProfileSettings(true);
+                    setIsMobileOpen(false);
+                  }}
+                >
+                  <span className="session-icon">⚙️</span>
+                  <span className="session-title-text">{t("nav_settings")}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Context Chat Sessions Sub-List */}
+          {activeTab === "chat" && !showProfileSettings && (
+            <div style={{ display: "flex", flexDirection: "column", marginTop: "12px" }}>
+              <button className="btn btn-primary new-session-btn" onClick={handleCreateSession}>
+                ➕ New Session
+              </button>
+
+              <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                {isSessionsLoading ? (
+                  <div className="sidebar-loader">Loading history...</div>
+                ) : sessions.length === 0 ? (
+                  <div className="no-sessions-msg">No consulting topics</div>
+                ) : (
+                  sessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className={`session-item-row ${activeSessionId === session.id ? "active-item" : ""}`}
+                      onClick={() => setActiveSessionId(session.id)}
+                    >
+                      <span className="session-icon">💬</span>
+                      <span className="session-title-text">{session.title}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Context-aware Chat Section */}
-        {activeTab === "chat" && !showProfileSettings && (
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-            <div style={{ height: "1px", backgroundColor: "var(--border-light)", margin: "8px 20px" }}></div>
-            <button className="btn btn-primary new-session-btn" onClick={handleCreateSession} style={{ marginTop: "8px" }}>
-              ➕ New Consult
-            </button>
-
-            <div className="sidebar-sessions-list" style={{ marginTop: "4px" }}>
-              {isSessionsLoading ? (
-                <div className="sidebar-loader">
-                  <span className="dot-spinner"></span> Loading history...
-                </div>
-              ) : sessions.length === 0 ? (
-                <div className="no-sessions-msg">No consulting topics started yet.</div>
-              ) : (
-                sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className={`session-item-row ${activeSessionId === session.id ? "active-item" : ""}`}
-                    onClick={() => {
-                      setActiveSessionId(session.id);
-                    }}
-                  >
-                    <span className="session-icon">💬</span>
-                    <span className="session-title-text">{session.title}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="sidebar-footer" style={{ marginTop: "auto" }}>
+        {/* Sidebar Footer User Widget */}
+        <div className="sidebar-footer">
           <div className="user-profile-widget" onClick={() => setShowProfileSettings(true)}>
-            <div className="avatar">🚜</div>
+            <div className="avatar">👨‍🌾</div>
             <div className="user-info">
               <div className="user-name">{currentFarmer?.first_name} {currentFarmer?.last_name}</div>
-              <div className="user-loc">{currentFarmer?.location || "India"}</div>
+              <div className="user-loc">{currentFarmer?.location || "Enterprise Farmer"}</div>
             </div>
           </div>
         </div>
@@ -482,15 +493,45 @@ const ChatPage = () => {
 
       {/* 2. Main Work Panel */}
       <main className="chat-main-panel">
-        <header className="chat-panel-header glass">
-          <div className="header-info">
-            <h2 className="header-title brand-font">{getHeaderTitle()}</h2>
-            <p className="header-status">{getHeaderStatus()}</p>
+        <header className="chat-panel-header">
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button className="mobile-nav-toggle" onClick={() => setIsMobileOpen(!isMobileOpen)}>
+              ☰
+            </button>
+            <div className="header-title-container">
+              <h2 className="header-title brand-font">{getHeaderTitle()}</h2>
+              <p className="header-status">{getHeaderStatus()}</p>
+            </div>
           </div>
+
           <div className="header-actions">
-            {farmsList.length > 0 ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginRight: "16px" }}>
-                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>Active Farm:</span>
+            {/* Multilingual Support - Language Selector Dropdown */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                style={{
+                  backgroundColor: "var(--bg-app)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border-light)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "6px 12px",
+                  fontSize: "0.82rem",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  outline: "none",
+                  boxShadow: "var(--shadow-sm)"
+                }}
+              >
+                <option value="en">English</option>
+                <option value="te">తెలుగు</option>
+                <option value="hi">हिन्दी</option>
+              </select>
+            </div>
+
+            {/* Active Farm Switcher Dropdown */}
+            {farmsList.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <select
                   value={currentFarmer?.active_farm_id || ""}
                   onChange={async (e) => {
@@ -505,153 +546,108 @@ const ChatPage = () => {
                     }
                   }}
                   style={{
-                    backgroundColor: "var(--bg-card)",
+                    backgroundColor: "var(--bg-app)",
                     color: "var(--text-primary)",
                     border: "1px solid var(--border-light)",
                     borderRadius: "var(--radius-sm)",
                     padding: "6px 12px",
-                    fontSize: "0.85rem",
+                    fontSize: "0.82rem",
                     fontWeight: "600",
                     cursor: "pointer",
                     outline: "none",
-                    boxShadow: "var(--shadow-sm)",
-                    fontFamily: "'Outfit', sans-serif"
+                    boxShadow: "var(--shadow-sm)"
                   }}
                 >
                   {farmsList.map((f) => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
+                    <option key={f.id} value={f.id}>📍 {f.name}</option>
                   ))}
                 </select>
               </div>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginRight: "16px" }}>
-                <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "var(--text-muted)", whiteSpace: "nowrap" }}>No Active Farm</span>
-              </div>
             )}
+
+            {/* Quick Dark Mode Toggle */}
             <button
-              className={`btn btn-secondary ${activeTab === "notifications" ? "btn-active" : ""}`}
-              onClick={() => {
-                setActiveTab("notifications");
-                setShowProfileSettings(false);
-              }}
-              style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "42px", height: "42px", padding: 0 }}
-              title="Alert Center"
+              className="btn btn-secondary"
+              onClick={toggleTheme}
+              style={{ width: "36px", height: "36px", padding: 0 }}
+              title={`Switch to theme Mode`}
             >
-              🔔
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "-4px",
-                    right: "-4px",
-                    backgroundColor: "#e53e3e",
-                    color: "white",
-                    borderRadius: "50%",
-                    minWidth: "18px",
-                    height: "18px",
-                    fontSize: "0.65rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: "bold",
-                    padding: "0 4px"
-                  }}
-                >
-                  {unreadCount}
-                </span>
-              )}
+              {themeMode === "dark" ? "☀️" : "🌙"}
             </button>
-            <button
-              className={`btn btn-secondary ${showProfileSettings ? "btn-active" : ""}`}
-              onClick={() => setShowProfileSettings(!showProfileSettings)}
-            >
-              ⚙️ Settings
-            </button>
-            <button className="btn btn-secondary logout-btn" onClick={logout}>
-              🚪 Logout
+
+            {/* Logout Action */}
+            <button className="btn btn-secondary logout-btn" onClick={logout} style={{ height: "36px" }}>
+              {t("nav_logout")}
             </button>
           </div>
         </header>
 
+        {/* Content Render View */}
         {showProfileSettings ? (
-          /* Settings Center Screen */
           <SettingsPage />
         ) : activeTab === "dashboard" ? (
-          /* Dashboard Home Overview Tab */
           <DashboardOverview
             key={currentFarmer?.active_farm_id}
-            onNavigateToChat={() => setActiveTab("chat")}
-            onNavigateToSoil={() => setActiveTab("soil")}
-            onNavigateToMarket={() => setActiveTab("market-intelligence")}
-            onNavigateToYield={() => setActiveTab("yield-prediction")}
-            onNavigateToPlanner={() => setActiveTab("farm-planner")}
-            onNavigateToRisk={() => setActiveTab("risk-intelligence")}
-            onNavigateToConsultant={() => setActiveTab("consult-agent")}
-            onNavigateToNotifications={() => setActiveTab("notifications")}
-            onNavigateToAnalytics={() => setActiveTab("analytics")}
-            onNavigateToPortfolio={() => setActiveTab("portfolio")}
+            onNavigateToChat={() => navigateTo("consult-agent")}
+            onNavigateToSoil={() => navigateTo("soil")}
+            onNavigateToMarket={() => navigateTo("market-intelligence")}
+            onNavigateToYield={() => navigateTo("yield-prediction")}
+            onNavigateToPlanner={() => navigateTo("farm-planner")}
+            onNavigateToRisk={() => navigateTo("risk-intelligence")}
+            onNavigateToConsultant={() => navigateTo("consult-agent")}
+            onNavigateToNotifications={() => navigateTo("notifications")}
+            onNavigateToAnalytics={() => navigateTo("analytics")}
+            onNavigateToPortfolio={() => navigateTo("portfolio")}
           />
         ) : activeTab === "portfolio" ? (
-          /* Farm Portfolio Page Tab */
           <FarmPortfolioPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "analytics" ? (
-          /* Farm Analytics Page Tab */
           <FarmAnalyticsPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "soil" ? (
-          /* Soil Health Analysis Tab */
           <SoilAnalyzerPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "disease" ? (
-          /* Disease Detection Page Tab */
           <DiseaseDetectionPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "crop-recommendations" ? (
-          /* Smart Crop Recommendations Tab */
           <CropRecommendationsPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "market-intelligence" ? (
-          /* Market Intelligence Dashboard Tab */
           <MarketIntelligencePage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "yield-prediction" ? (
-          /* Crop Yield Prediction Dashboard Tab */
           <YieldPredictionPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "farm-planner" ? (
-          /* Farm Planner Dashboard Tab */
           <FarmPlannerPage key={currentFarmer?.active_farm_id} />
         ) : activeTab === "risk-intelligence" ? (
-          /* Risk Warning Dashboard Tab */
-          <RiskWarningPage key={currentFarmer?.active_farm_id} onNavigateToPlanner={() => setActiveTab("farm-planner")} />
+          <RiskWarningPage key={currentFarmer?.active_farm_id} onNavigateToPlanner={() => navigateTo("farm-planner")} />
         ) : activeTab === "consult-agent" ? (
-          /* Virtual Agronomist Tab */
-          <ConsultAgentPage key={currentFarmer?.active_farm_id} onNavigateToPlanner={() => setActiveTab("farm-planner")} />
+          <ConsultAgentPage key={currentFarmer?.active_farm_id} onNavigateToPlanner={() => navigateTo("farm-planner")} />
         ) : activeTab === "notifications" ? (
-          /* Notification Center Page Tab */
           <NotificationCenterPage key={currentFarmer?.active_farm_id} onUpdateUnread={setUnreadCount} />
         ) : activeTab === "help-center" ? (
-          /* Help Center Page Tab */
           <HelpCenterPage />
         ) : (
-          /* Consult Agent Chat Window Screen Tab */
+          /* Chat Window Screen */
           <div className="chat-window-wrapper">
             <div className="chat-messages-container">
               {isMessagesLoading ? (
                 <div className="chat-loader">
-                  <span className="pulse-ring"></span> Initializing conversation logs...
+                  <span className="pulse-ring"></span> Loading conversation...
                 </div>
               ) : messages.length === 0 ? (
                 <div className="chat-welcome-hero animate-fade-in">
                   <div className="hero-badge">🌱 Virtual Agronomist</div>
                   <h1 className="hero-title">Namaste, {currentFarmer?.first_name}!</h1>
                   <p className="hero-subtitle">
-                    How can I assist you with your farming today? Ask me about crop yields, soil testing, weed management, or fertilizer suggestions.
+                    Ask any agronomic questions regarding NPK ratios, crop disease remediation, weather protection, or market pricing.
                   </p>
                   <div className="quick-suggestions-grid">
-                    <div className="suggestion-card glass" onClick={() => setInputMessage("What is the best NPK ratio for tomatoes?")}>
-                      <span className="card-icon">🍅</span>
-                      <h4>Tomatoes</h4>
-                      <p>Ask about fertilizer suggestions</p>
+                    <div className="suggestion-card saas-card hover-card" onClick={() => setInputMessage("What is the optimal NPK ratio for wheat?")}>
+                      <span className="card-icon">🌾</span>
+                      <h4>Wheat NPK Balance</h4>
+                      <p>Analyze fertilizer application rates</p>
                     </div>
-                    <div className="suggestion-card glass" onClick={() => setInputMessage("How do I control black spot disease on cotton leaves?")}>
-                      <span className="card-icon">🌿</span>
-                      <h4>Cotton Pest</h4>
-                      <p>Ask about handling leaf diseases</p>
+                    <div className="suggestion-card saas-card hover-card" onClick={() => setInputMessage("How do I control fungal leaf spot on cotton?")}>
+                      <span className="card-icon">🍃</span>
+                      <h4>Foliage Infection</h4>
+                      <p>Organic treatment protocols</p>
                     </div>
                   </div>
                 </div>
@@ -663,7 +659,7 @@ const ChatPage = () => {
                       className={`message-bubble-row ${msg.sender === "FARMER" ? "row-farmer" : "row-ai"}`}
                     >
                       <div className="message-avatar">{msg.sender === "FARMER" ? "👨‍🌾" : "🤖"}</div>
-                      <div className="message-bubble glass">
+                      <div className="message-bubble">
                         <div className="bubble-text">{msg.message_text}</div>
                         <div className="bubble-time">
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -674,7 +670,7 @@ const ChatPage = () => {
                   {isSending && (
                     <div className="message-bubble-row row-ai animate-fade-in">
                       <div className="message-avatar">🤖</div>
-                      <div className="message-bubble glass bubble-loading">
+                      <div className="message-bubble bubble-loading">
                         <div className="bouncing-dots">
                           <span className="dot"></span>
                           <span className="dot"></span>
@@ -688,19 +684,18 @@ const ChatPage = () => {
               )}
             </div>
 
-            {/* Message Input Controls */}
             {activeSessionId && (
-              <form onSubmit={handleSendMessage} className="chat-input-bar glass">
+              <form onSubmit={handleSendMessage} className="chat-input-bar">
                 <input
                   type="text"
                   className="chat-text-input"
-                  placeholder="Ask a question (e.g. 'How often should I water wheat crops?')..."
+                  placeholder="Ask a question (e.g. 'How to optimize soil Nitrogen levels?')..."
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   disabled={isSending}
                 />
-                <button type="submit" className="btn btn-primary send-button" disabled={isSending || !inputMessage.trim()}>
-                  {isSending ? "..." : "Send ➔"}
+                <button type="submit" className="btn btn-primary" disabled={isSending || !inputMessage.trim()}>
+                  {isSending ? "..." : "Send →"}
                 </button>
               </form>
             )}

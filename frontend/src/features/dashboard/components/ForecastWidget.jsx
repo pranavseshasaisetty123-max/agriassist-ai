@@ -32,7 +32,7 @@ const ForecastWidget = () => {
   }
 
   const getWeatherIcon = (cond) => {
-    const c = cond.toLowerCase();
+    const c = (cond || "").toLowerCase();
     if (c.includes("clear") || c.includes("sun")) return "☀️";
     if (c.includes("cloud") || c.includes("mainly")) return "☁️";
     if (c.includes("rain") || c.includes("drizzle") || c.includes("shower")) return "🌧️";

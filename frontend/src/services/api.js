@@ -7,13 +7,15 @@ const api = axios.create({
   },
 });
 
-// Request Interceptor: Inject JWT token into header
+// Request Interceptor: Inject JWT token and selected language into header
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("agriassist_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    const lang = localStorage.getItem("agri_lang") || "en";
+    config.headers["Accept-Language"] = lang;
     return config;
   },
   (error) => {

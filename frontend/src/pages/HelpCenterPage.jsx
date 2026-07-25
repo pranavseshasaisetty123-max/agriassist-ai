@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import api from "../services/api";
 import EmptyState from "../components/EmptyState";
 import { TextSkeleton } from "../components/Skeleton";
+import { useLanguage } from "../context/LanguageContext";
 
 const HelpCenterPage = () => {
+  const { t } = useLanguage();
   const [helpData, setHelpData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,7 +40,7 @@ const HelpCenterPage = () => {
   if (loading) {
     return (
       <div style={{ padding: "32px", display: "flex", flexDirection: "column", gap: "20px" }}>
-        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1.5rem" }}>📖 Help Center</h2>
+        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "1.5rem" }}>📖 {t("help_title")}</h2>
         <TextSkeleton />
         <TextSkeleton />
       </div>
@@ -50,9 +52,9 @@ const HelpCenterPage = () => {
       <div style={{ padding: "32px" }}>
         <EmptyState
           icon="📖"
-          title="Documentation Unavailable"
-          description="Could not download help center guides. Please check your connection to the server."
-          actionLabel="Try Again"
+          title={t("msg_no_data")}
+          description={t("msg_no_data")}
+          actionLabel={t("dis_recovery_steps") || "Retry"}
           onAction={fetchHelpData}
         />
       </div>
@@ -74,12 +76,11 @@ const HelpCenterPage = () => {
 
   return (
     <div className="animate-fade-in" style={{ padding: "32px", overflowY: "auto", height: "100%", display: "flex", flexDirection: "column", gap: "28px" }}>
-      
-      {/* Header */}
+       {/* Header */}
       <div>
-        <h1 style={{ fontSize: "1.8rem", color: "var(--text-primary)", fontWeight: "800", margin: 0 }}>📖 Help & Documentation Center</h1>
+        <h1 style={{ fontSize: "1.8rem", color: "var(--text-primary)", fontWeight: "800", margin: 0 }}>📖 {t("help_title")}</h1>
         <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginTop: "4px" }}>
-          Guides, frequently asked questions, and platform troubleshooting instructions
+          {t("help_subtitle")}
         </p>
       </div>
 
@@ -88,7 +89,7 @@ const HelpCenterPage = () => {
         <input
           type="text"
           className="form-input"
-          placeholder="🔍 Search guides, FAQs, or troubleshooting tips..."
+          placeholder={`🔍 ${t("help_search")}`}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -100,10 +101,10 @@ const HelpCenterPage = () => {
           
           {/* Diagnostic Guides */}
           <div>
-            <h2 style={{ fontSize: "1.25rem", color: "var(--text-primary)", marginBottom: "16px", fontWeight: "700" }}>📖 Platform Operations Guides</h2>
+            <h2 style={{ fontSize: "1.25rem", color: "var(--text-primary)", marginBottom: "16px", fontWeight: "700" }}>📖 {t("help_guides_title")}</h2>
             
             {filteredGuides.length === 0 ? (
-              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>No guides match your search.</p>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{t("help_no_guides")}</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {filteredGuides.map(([key, content]) => (
@@ -116,7 +117,7 @@ const HelpCenterPage = () => {
                       marginBottom: "8px",
                       fontFamily: "'Outfit', sans-serif"
                     }}>
-                      {key.replace("_", " ")} Guide
+                      {key.replace("_", " ")} {t("help_guide_suffix")}
                     </h3>
                     <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
                       {content}
@@ -129,10 +130,10 @@ const HelpCenterPage = () => {
 
           {/* Frequently Asked Questions */}
           <div>
-            <h2 style={{ fontSize: "1.25rem", color: "var(--text-primary)", marginBottom: "16px", fontWeight: "700" }}>❓ Frequently Asked Questions</h2>
+            <h2 style={{ fontSize: "1.25rem", color: "var(--text-primary)", marginBottom: "16px", fontWeight: "700" }}>❓ {t("help_faqs_title")}</h2>
             
             {filteredFaqs.length === 0 ? (
-              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>No FAQs match your search.</p>
+              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{t("help_no_faqs")}</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {filteredFaqs.map((faq, idx) => {
@@ -186,7 +187,7 @@ const HelpCenterPage = () => {
           {/* Troubleshooting Card */}
           <div className="glass" style={{ padding: "24px", borderRadius: "var(--radius-md)" }}>
             <h3 style={{ fontSize: "1.1rem", color: "var(--text-primary)", marginBottom: "16px", fontWeight: "700", fontFamily: "'Outfit', sans-serif" }}>
-              🛠️ Troubleshooting
+              🛠️ {t("help_troubleshoot")}
             </h3>
             <ul style={{
               fontSize: "0.85rem",
@@ -207,10 +208,10 @@ const HelpCenterPage = () => {
           {/* Quick Contact Card */}
           <div className="glass" style={{ padding: "24px", borderRadius: "var(--radius-md)", backgroundColor: "rgba(56, 161, 105, 0.03)", border: "1px solid rgba(56, 161, 105, 0.15)" }}>
             <h3 style={{ fontSize: "1.1rem", color: "var(--primary)", marginBottom: "8px", fontWeight: "700", fontFamily: "'Outfit', sans-serif" }}>
-              ✉ Need Contact Support?
+              ✉ {t("help_support_title")}
             </h3>
             <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", lineHeight: "1.4", marginBottom: "16px" }}>
-              Our agronomist support desk is available to answer complex soil, disease, or scheduling operations queries.
+              {t("help_support_desc")}
             </p>
             <a
               href="mailto:support@agriassist.ai"
@@ -224,13 +225,12 @@ const HelpCenterPage = () => {
                 justifyContent: "center"
               }}
             >
-              Contact support@agriassist.ai
+              {t("help_support_btn")}
             </a>
           </div>
 
         </div>
       </div>
-
     </div>
   );
 };

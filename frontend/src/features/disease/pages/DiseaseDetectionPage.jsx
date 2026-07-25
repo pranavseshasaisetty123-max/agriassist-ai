@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../../services/api";
+import { useLanguage } from "../../../context/LanguageContext";
 
 // Reusable component to fetch and render authenticated images securely
 const AuthImage = ({ src, alt, style }) => {
@@ -63,6 +64,7 @@ const AuthImage = ({ src, alt, style }) => {
 };
 
 const DiseaseDetectionPage = () => {
+  const { t } = useLanguage();
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [activeScan, setActiveScan] = useState(null);
@@ -270,8 +272,36 @@ const DiseaseDetectionPage = () => {
             </div>
 
             {error && (
-              <div style={{ padding: "12px 16px", backgroundColor: "#fff5f5", color: "#e53e3e", borderRadius: "var(--radius-sm)", fontSize: "0.875rem", borderLeft: "4px solid #e53e3e" }}>
-                ⚠️ {error}
+              <div style={{ 
+                padding: "16px", 
+                backgroundColor: "var(--bg-card)", 
+                color: "#e53e3e", 
+                borderRadius: "var(--radius-sm)", 
+                fontSize: "0.875rem", 
+                border: "1px solid #e53e3e",
+                borderLeft: "4px solid #e53e3e",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span>⚠️</span>
+                  <span>{error}</span>
+                </div>
+                {error.includes("unavailable") && (
+                  <button 
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={(e) => {
+                      setError("");
+                      handleScanSubmit(e);
+                    }}
+                    style={{ padding: "6px 14px", fontSize: "0.75rem", flexShrink: 0 }}
+                  >
+                    Retry
+                  </button>
+                )}
               </div>
             )}
 
@@ -398,7 +428,7 @@ const DiseaseDetectionPage = () => {
             {/* Symptoms Grid */}
             <div>
               <h4 style={{ color: "var(--text-primary)", fontSize: "1rem", fontWeight: "700", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                👁️ Symptoms Observed
+                👁️ {t("dis_symptoms")}
               </h4>
               <ul style={{ paddingLeft: "20px", fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
                 {activeScan.symptoms.map((pt, i) => (
@@ -407,29 +437,61 @@ const DiseaseDetectionPage = () => {
               </ul>
             </div>
 
-            {/* Treatment recommendations */}
-            <div>
-              <h4 style={{ color: "var(--text-primary)", fontSize: "1rem", fontWeight: "700", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                💊 Recommended Treatments / Core Actions
-              </h4>
-              <ul style={{ paddingLeft: "20px", fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
-                {activeScan.treatment.map((pt, i) => (
-                  <li key={i} style={{ marginBottom: "4px" }}>{pt}</li>
-                ))}
-              </ul>
-            </div>
+            {/* Standard Chemical Treatment */}
+            {activeScan.treatment.filter(pt => !pt.includes("[ORGANIC]")).length > 0 && (
+              <div>
+                <h4 style={{ color: "var(--text-primary)", fontSize: "1rem", fontWeight: "700", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  💊 {t("dis_chemical_treatment")}
+                </h4>
+                <ul style={{ paddingLeft: "20px", fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
+                  {activeScan.treatment.filter(pt => !pt.includes("[ORGANIC]")).map((pt, i) => (
+                    <li key={i} style={{ marginBottom: "4px" }}>{pt}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-            {/* Preventive measures */}
-            <div>
-              <h4 style={{ color: "var(--text-primary)", fontSize: "1rem", fontWeight: "700", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                🛡️ Preventive Actions
-              </h4>
-              <ul style={{ paddingLeft: "20px", fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
-                {activeScan.preventive_measures.map((pt, i) => (
-                  <li key={i} style={{ marginBottom: "4px" }}>{pt}</li>
-                ))}
-              </ul>
-            </div>
+            {/* Organic Treatment */}
+            {activeScan.treatment.filter(pt => pt.includes("[ORGANIC]")).length > 0 && (
+              <div>
+                <h4 style={{ color: "var(--text-primary)", fontSize: "1rem", fontWeight: "700", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  🌿 {t("dis_organic_treatment")}
+                </h4>
+                <ul style={{ paddingLeft: "20px", fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
+                  {activeScan.treatment.filter(pt => pt.includes("[ORGANIC]")).map((pt, i) => (
+                    <li key={i} style={{ marginBottom: "4px" }}>{pt.replace("[ORGANIC]", "").trim()}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Preventive Measures */}
+            {activeScan.preventive_measures.filter(pt => !pt.includes("[RECOVERY]")).length > 0 && (
+              <div>
+                <h4 style={{ color: "var(--text-primary)", fontSize: "1rem", fontWeight: "700", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  🛡️ {t("dis_preventive_measures")}
+                </h4>
+                <ul style={{ paddingLeft: "20px", fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
+                  {activeScan.preventive_measures.filter(pt => !pt.includes("[RECOVERY]")).map((pt, i) => (
+                    <li key={i} style={{ marginBottom: "4px" }}>{pt}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Recovery Steps */}
+            {activeScan.preventive_measures.filter(pt => pt.includes("[RECOVERY]")).length > 0 && (
+              <div>
+                <h4 style={{ color: "var(--text-primary)", fontSize: "1rem", fontWeight: "700", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  🏃‍♂️ {t("dis_recovery_steps")}
+                </h4>
+                <ul style={{ paddingLeft: "20px", fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
+                  {activeScan.preventive_measures.filter(pt => pt.includes("[RECOVERY]")).map((pt, i) => (
+                    <li key={i} style={{ marginBottom: "4px" }}>{pt.replace("[RECOVERY]", "").trim()}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>

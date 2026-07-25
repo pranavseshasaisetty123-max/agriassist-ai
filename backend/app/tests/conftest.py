@@ -9,8 +9,13 @@ from app.models import Farm
 
 
 
+import os
+
 # Connect to the test database
-TEST_DATABASE_URL = "mysql+pymysql://root:Pranav%4099@localhost:3306/agriassist_test"
+TEST_DB_HOST = os.getenv("DB_HOST", "mysql" if os.path.exists("/.dockerenv") else "127.0.0.1")
+TEST_DB_PORT = os.getenv("DB_PORT", "3306" if os.path.exists("/.dockerenv") else "3307")
+DEFAULT_TEST_DB_URL = f"mysql+pymysql://root:password@{TEST_DB_HOST}:{TEST_DB_PORT}/agriassist_test"
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", DEFAULT_TEST_DB_URL)
 
 engine = create_engine(TEST_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

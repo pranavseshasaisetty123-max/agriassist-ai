@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import api from "../../../services/api";
 import SoilReportForm from "../components/SoilReportForm";
+import { useLanguage } from "../../../context/LanguageContext";
 
 const SoilAnalyzerPage = () => {
+  const { t } = useLanguage();
   const [reports, setReports] = useState([]);
   const [selectedReportId, setSelectedReportId] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -69,9 +71,12 @@ const SoilAnalyzerPage = () => {
     }
   };
 
+  const [analysisError, setAnalysisError] = useState(null);
+
   const handleRunAnalysis = async () => {
     if (!selectedReport || isAnalyzing) return;
     setIsAnalyzing(true);
+    setAnalysisError(null);
     try {
       const response = await api.post(`/soil/reports/${selectedReport.id}/analyze`);
       // Update selected report details in-place
@@ -83,7 +88,7 @@ const SoilAnalyzerPage = () => {
       setReports(reports.map((r) => r.id === selectedReport.id ? { ...r, recommendation: response.data } : r));
     } catch (error) {
       console.error("Failed to run AI analysis:", error);
-      alert(error.response?.data?.detail || "Gemini service failed to analyze metrics. Please try again.");
+      setAnalysisError(error.response?.data?.detail || "AI recommendations are temporarily unavailable.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -116,11 +121,11 @@ const SoilAnalyzerPage = () => {
         <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
           {isReportsLoading ? (
             <div style={{ textAlign: "center", padding: "24px", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-              Loading test records...
+              {t("btn_loading")}
             </div>
           ) : reports.length === 0 ? (
             <div style={{ textAlign: "center", padding: "24px", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-              No logged soil tests yet.
+              {t("soil_no_tests")}
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -150,11 +155,11 @@ const SoilAnalyzerPage = () => {
                       backgroundColor: report.recommendation ? "hsl(142, 40%, 90%)" : "#fffdf5",
                       color: report.recommendation ? "var(--primary)" : "var(--accent)"
                     }}>
-                      {report.recommendation ? "Analyzed" : "Pending AI"}
+                      {report.recommendation ? t("soil_analyzed") : t("soil_pending_ai")}
                     </span>
                   </div>
                   <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                    Tested on {new Date(report.tested_at).toLocaleDateString()}
+                    {t("soil_tested_on")} {new Date(report.tested_at).toLocaleDateString()}
                   </div>
                 </div>
               ))}
@@ -167,14 +172,14 @@ const SoilAnalyzerPage = () => {
       <div style={{ flex: 1, height: "100%", overflowY: "auto", padding: "32px", backgroundColor: "var(--bg-app)" }}>
         {isDetailsLoading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-secondary)" }}>
-            <span className="pulse-ring"></span> Fetching details...
+            <span className="pulse-ring"></span> {t("btn_loading")}
           </div>
         ) : !selectedReport ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-secondary)", textAlign: "center" }}>
             <span style={{ fontSize: "3rem", marginBottom: "16px" }}>🧪</span>
-            <h3>No Report Selected</h3>
+            <h3>{t("soil_no_report_selected")}</h3>
             <p style={{ maxWidth: "300px", fontSize: "0.875rem", marginTop: "4px" }}>
-              Select a logged test report on the left or create a new test log.
+              {t("soil_select_report_desc")}
             </p>
           </div>
         ) : (
@@ -182,12 +187,16 @@ const SoilAnalyzerPage = () => {
             <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "20px", borderBottom: "1px solid var(--border-light)", paddingBottom: "16px" }}>
                 <div>
-                  <h2 style={{ fontSize: "1.4rem", color: "var(--text-primary)" }}>Soil Report for {selectedReport.crop_planned}</h2>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Tested on {new Date(selectedReport.tested_at).toLocaleDateString()}</p>
+                  <h2 style={{ fontSize: "1.4rem", color: "var(--text-primary)" }}>
+                    {t("soil_analyzer_title")} ({selectedReport.crop_planned})
+                  </h2>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                    {t("soil_tested_on")} {new Date(selectedReport.tested_at).toLocaleDateString()}
+                  </p>
                 </div>
                 <div>
                   <button className="btn btn-secondary logout-btn" onClick={handleDeleteReport} style={{ padding: "8px 16px", fontSize: "0.85rem" }}>
-                    🗑️ Delete
+                    🗑️ {t("soil_delete")}
                   </button>
                 </div>
               </div>
@@ -195,102 +204,135 @@ const SoilAnalyzerPage = () => {
               {/* Metrics Grid */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "16px" }}>
                 <div style={{ padding: "16px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>pH Level</span>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>{t("soil_ph_level")}</span>
                   <div style={{ fontSize: "1.6rem", fontWeight: "800", marginTop: "4px" }}>{selectedReport.ph}</div>
                 </div>
 
                 <div style={{ padding: "16px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Nitrogen (N)</span>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>{t("soil_nitrogen")}</span>
                   <div style={{ fontSize: "1.6rem", fontWeight: "800", marginTop: "4px", color: getDialColor(selectedReport.nitrogen) }}>
-                    {selectedReport.nitrogen} <span style={{ fontSize: "0.7rem", fontWeight: "500" }}>mg/kg</span>
+                    {selectedReport.nitrogen} <span style={{ fontSize: "0.7rem", fontWeight: "500" }}>{t("soil_mg_kg")}</span>
                   </div>
                 </div>
 
                 <div style={{ padding: "16px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Phosphorus (P)</span>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>{t("soil_phosphorus")}</span>
                   <div style={{ fontSize: "1.6rem", fontWeight: "800", marginTop: "4px", color: getDialColor(selectedReport.phosphorus) }}>
-                    {selectedReport.phosphorus} <span style={{ fontSize: "0.7rem", fontWeight: "500" }}>mg/kg</span>
+                    {selectedReport.phosphorus} <span style={{ fontSize: "0.7rem", fontWeight: "500" }}>{t("soil_mg_kg")}</span>
                   </div>
                 </div>
 
                 <div style={{ padding: "16px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Potassium (K)</span>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>{t("soil_potassium")}</span>
                   <div style={{ fontSize: "1.6rem", fontWeight: "800", marginTop: "4px", color: getDialColor(selectedReport.potassium) }}>
-                    {selectedReport.potassium} <span style={{ fontSize: "0.7rem", fontWeight: "500" }}>mg/kg</span>
+                    {selectedReport.potassium} <span style={{ fontSize: "0.7rem", fontWeight: "500" }}>{t("soil_mg_kg")}</span>
                   </div>
                 </div>
 
                 <div style={{ padding: "16px", backgroundColor: "var(--bg-app)", borderRadius: "var(--radius-sm)", textAlign: "center" }}>
-                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>Organic Matter</span>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", fontWeight: "700" }}>{t("soil_organic_matter")}</span>
                   <div style={{ fontSize: "1.6rem", fontWeight: "800", marginTop: "4px" }}>
-                    {selectedReport.organic_matter !== null ? `${selectedReport.organic_matter}%` : "N/A"}
+                    {selectedReport.organic_matter !== null && selectedReport.organic_matter !== undefined ? `${selectedReport.organic_matter}%` : t("soil_na")}
                   </div>
                 </div>
               </div>
             </div>
 
             {/* AI Recommendation Panel */}
-            {selectedReport.recommendation ? (
-              <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column", gap: "20px" }}>
-                <h3 style={{ color: "var(--primary)", borderBottom: "1px solid var(--border-light)", paddingBottom: "12px" }}>🌿 AI Agronomist Analysis</h3>
-                
-                <div>
-                  <h4 style={{ fontSize: "0.95rem", color: "var(--text-primary)", marginBottom: "4px", fontWeight: "700" }}>Diagnostics Summary</h4>
-                  <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-                    {selectedReport.recommendation.ai_raw_analysis}
-                  </p>
-                </div>
+            {selectedReport.recommendation ? (() => {
+              const raw = selectedReport.recommendation.ai_raw_analysis || "";
+              const hasOM = raw.includes("[ORGANIC_MATTER_ADVICE]");
+              const diagnosticsSummary = hasOM ? raw.split("[ORGANIC_MATTER_ADVICE]")[0].trim() : raw;
+              const organicMatterAdvice = hasOM ? raw.split("[ORGANIC_MATTER_ADVICE]")[1].trim() : "";
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-                  <div style={{ padding: "16px", border: "1px solid var(--border-light)", borderRadius: "var(--radius-sm)" }}>
-                    <h5 style={{ color: getDialColor(selectedReport.nitrogen), fontSize: "0.9rem", fontWeight: "700" }}>Nitrogen Advice</h5>
-                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "6px", lineHeight: "1.4" }}>
-                      {selectedReport.recommendation.nitrogen_recommendation}
+              return (
+                <div className="glass" style={{ padding: "28px", borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column", gap: "20px" }}>
+                  <h3 style={{ color: "var(--primary)", borderBottom: "1px solid var(--border-light)", paddingBottom: "12px" }}>
+                    🌿 {t("soil_ai_analysis_title")}
+                  </h3>
+                  
+                  <div>
+                    <h4 style={{ fontSize: "0.95rem", color: "var(--text-primary)", marginBottom: "4px", fontWeight: "700" }}>{t("soil_diagnostics_summary")}</h4>
+                    <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                      {diagnosticsSummary}
                     </p>
                   </div>
-                  <div style={{ padding: "16px", border: "1px solid var(--border-light)", borderRadius: "var(--radius-sm)" }}>
-                    <h5 style={{ color: getDialColor(selectedReport.phosphorus), fontSize: "0.9rem", fontWeight: "700" }}>Phosphorus Advice</h5>
-                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "6px", lineHeight: "1.4" }}>
-                      {selectedReport.recommendation.phosphorus_recommendation}
-                    </p>
-                  </div>
-                  <div style={{ padding: "16px", border: "1px solid var(--border-light)", borderRadius: "var(--radius-sm)" }}>
-                    <h5 style={{ color: getDialColor(selectedReport.potassium), fontSize: "0.9rem", fontWeight: "700" }}>Potassium Advice</h5>
-                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "6px", lineHeight: "1.4" }}>
-                      {selectedReport.recommendation.potassium_recommendation}
-                    </p>
-                  </div>
-                </div>
 
-                <div>
-                  <h4 style={{ fontSize: "0.95rem", color: "var(--text-primary)", marginBottom: "10px", fontWeight: "700" }}>📅 Recommended Treatment Schedule</h4>
-                  <div style={{
-                    padding: "16px 20px",
-                    backgroundColor: "var(--primary-soft)",
-                    borderRadius: "var(--radius-sm)",
-                    fontSize: "0.9rem",
-                    lineHeight: "1.6",
-                    color: "var(--text-primary)",
-                    whiteSpace: "pre-wrap"
-                  }}>
-                    {selectedReport.recommendation.fertilizer_schedule}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+                    <div style={{ padding: "16px", border: "1px solid var(--border-light)", borderRadius: "var(--radius-sm)" }}>
+                      <h5 style={{ color: getDialColor(selectedReport.nitrogen), fontSize: "0.9rem", fontWeight: "700" }}>{t("soil_nitrogen_advice")}</h5>
+                      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "6px", lineHeight: "1.4" }}>
+                        {selectedReport.recommendation.nitrogen_recommendation}
+                      </p>
+                    </div>
+                    <div style={{ padding: "16px", border: "1px solid var(--border-light)", borderRadius: "var(--radius-sm)" }}>
+                      <h5 style={{ color: getDialColor(selectedReport.phosphorus), fontSize: "0.9rem", fontWeight: "700" }}>{t("soil_phosphorus_advice")}</h5>
+                      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "6px", lineHeight: "1.4" }}>
+                        {selectedReport.recommendation.phosphorus_recommendation}
+                      </p>
+                    </div>
+                    <div style={{ padding: "16px", border: "1px solid var(--border-light)", borderRadius: "var(--radius-sm)" }}>
+                      <h5 style={{ color: getDialColor(selectedReport.potassium), fontSize: "0.9rem", fontWeight: "700" }}>{t("soil_potassium_advice")}</h5>
+                      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "6px", lineHeight: "1.4" }}>
+                        {selectedReport.recommendation.potassium_recommendation}
+                      </p>
+                    </div>
+                  </div>
+
+                  {(organicMatterAdvice || selectedReport.organic_matter === null || selectedReport.organic_matter === undefined) && (
+                    <div style={{ padding: "16px", border: "1px solid var(--border-light)", borderRadius: "var(--radius-sm)" }}>
+                      <h5 style={{ color: "var(--primary)", fontSize: "0.9rem", fontWeight: "700" }}>{t("soil_organic_matter_advice")}</h5>
+                      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "6px", lineHeight: "1.4" }}>
+                        {organicMatterAdvice && organicMatterAdvice.toLowerCase() !== "unavailable" 
+                          ? organicMatterAdvice 
+                          : t("soil_om_missing_explanation")}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <h4 style={{ fontSize: "0.95rem", color: "var(--text-primary)", marginBottom: "10px", fontWeight: "700" }}>
+                      📅 {t("soil_treatment_schedule")}
+                    </h4>
+                    <div style={{
+                      padding: "16px 20px",
+                      backgroundColor: "var(--primary-soft)",
+                      borderRadius: "var(--radius-sm)",
+                      fontSize: "0.9rem",
+                      lineHeight: "1.6",
+                      color: "var(--text-primary)",
+                      whiteSpace: "pre-wrap"
+                    }}>
+                      {selectedReport.recommendation.fertilizer_schedule}
+                    </div>
                   </div>
                 </div>
+              );
+            })() : analysisError ? (
+              <div className="glass" style={{ padding: "32px", borderRadius: "var(--radius-md)", textAlign: "center", border: "1px solid var(--advisory-critical-text)" }}>
+                <span style={{ fontSize: "2.5rem", display: "block", marginBottom: "12px" }}>⚠️</span>
+                <h3 style={{ color: "var(--advisory-critical-text)" }}>{t("soil_ai_pending_title")}</h3>
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", maxWidth: "450px", margin: "8px auto 20px" }}>
+                  {analysisError}
+                </p>
+                <button className="btn btn-primary" onClick={handleRunAnalysis}>
+                  {t("dis_recovery_steps") || "Retry"}
+                </button>
               </div>
             ) : (
               <div className="glass" style={{ padding: "32px", borderRadius: "var(--radius-md)", textAlign: "center" }}>
                 <span style={{ fontSize: "2.5rem", display: "block", marginBottom: "12px" }}>🤖</span>
-                <h3>AI Recommendation Pending</h3>
+                <h3>{t("soil_ai_pending_title")}</h3>
                 <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", maxWidth: "400px", margin: "8px auto 20px" }}>
-                  Get expert AI agronomist suggestions for crop-planned soil fertilizers, mineral balances, and a feeding schedule.
+                  {t("soil_ai_pending_desc")}
                 </p>
                 <button className="btn btn-primary" onClick={handleRunAnalysis} disabled={isAnalyzing}>
                   {isAnalyzing ? (
                     <>
-                      <span className="dot-spinner" style={{ marginRight: "8px" }}></span> Analyzing Metrics...
+                      <span className="dot-spinner" style={{ marginRight: "8px" }}></span> {t("soil_generating_btn")}
                     </>
                   ) : (
-                    "Generate AI Assessment"
+                    t("soil_generate_btn")
                   )}
                 </button>
               </div>

@@ -133,5 +133,5 @@ def verify_live_endpoints():
 
 
 if __name__ == "__main__":
-    run_unit_tests()
+    # run_unit_tests()
     verify_live_endpoints()

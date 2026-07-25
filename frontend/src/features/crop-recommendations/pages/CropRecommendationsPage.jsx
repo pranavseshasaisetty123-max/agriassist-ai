@@ -226,8 +226,34 @@ const CropRecommendationsPage = () => {
         </div>
 
         {error && (
-          <div style={{ padding: "12px 16px", backgroundColor: "#fff5f5", color: "#e53e3e", borderRadius: "var(--radius-sm)", fontSize: "0.875rem", borderLeft: "4px solid #e53e3e" }}>
-            ⚠️ {error}
+          <div style={{ 
+            padding: "16px", 
+            backgroundColor: "var(--bg-card)", 
+            color: "#e53e3e", 
+            borderRadius: "var(--radius-sm)", 
+            fontSize: "0.875rem", 
+            border: "1px solid #e53e3e",
+            borderLeft: "4px solid #e53e3e",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "16px"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>⚠️</span>
+              <span>{error}</span>
+            </div>
+            {error.includes("unavailable") && (
+              <button 
+                type="button"
+                className="btn btn-primary"
+                onClick={handleGenerate}
+                style={{ padding: "6px 14px", fontSize: "0.75rem", flexShrink: 0 }}
+              >
+                Retry
+              </button>
+            )}
           </div>
         )}
 

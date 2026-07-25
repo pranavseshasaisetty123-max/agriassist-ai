@@ -17,14 +17,17 @@ AgriAssist AI is a production-grade, full-stack agricultural decision-support pl
 3. [Core Capabilities (15 Sprints)](#-core-capabilities-15-sprints)
 4. [Tech Stack](#-tech-stack)
 5. [System Architecture](#-system-architecture)
-6. [Database Schema & Migrations](#-database-schema--migrations)
-7. [Installation & Setup](#-installation--setup)
+6. [AI Pipeline & Context Injection](#-ai-pipeline--context-injection)
+7. [Database Design & Relationships](#-database-design--relationships)
+8. [Installation & Setup](#-installation--setup)
    - [A. Docker Compose Orchestration (Recommended)](#a-docker-compose-orchestration-recommended)
    - [B. Direct Local Setup](#b-direct-local-setup)
-8. [API Overview](#-api-overview)
-9. [Automated Testing & Live Checks](#-automated-testing--live-checks)
-10. [Folder Structure](#-folder-structure)
-11. [Author & Contributions](#-author--contributions)
+9. [Environment Variables](#-environment-variables)
+10. [API Documentation](#-api-documentation)
+11. [Automated Testing & Live Checks](#-automated-testing--live-checks)
+12. [Folder Structure](#-folder-structure)
+13. [Future Improvements](#-future-improvements)
+14. [Developer & Contributions](#-developer--contributions)
 
 ---
 
@@ -49,7 +52,7 @@ AgriAssist AI bridges the gap between raw scientific agronomy data (chemical soi
 * **Farm Planner & Activity Planners**: Sequential crop timeline calendars with tasks prioritized, complete flags, and snooze capabilities.
 * **Risk Early Warnings**: Regional warning center alerting farmers of storms, pest threats, and soil hazards.
 * **Virtual AI Consultant**: Context-aware agronomist chatbot referencing active soil profiles, location constraints, and chat logs.
-* **Alert Inbox Inbox**: Central inbox aggregating notifications from all modules with soft-delete controls.
+* **Alert Inbox**: Central inbox aggregating notifications from all modules with soft-delete controls.
 * **Executive PDF Report Compiler**: Generates downloadable PDF performance charts and profit gauges using ReportLab.
 * **Multi-Farm Context Switching**: Create, manage, and toggle between multiple land holdings. Features self-healing fallback logic if context is lost.
 * **Placement-Ready UX Polish**: Dynamic HSL light/dark themes, full-page loading indicators, skeleton card shimmers, global toast notifications, error boundaries, and system health status widgets.
@@ -98,20 +101,68 @@ graph TD
 
 ---
 
-## 🔌 API Overview
-All REST routes are prefixed under `/api/v1/`:
+## 🤖 AI Pipeline & Context Injection
 
-* `POST /auth/register` - Create farmer profile.
-* `POST /auth/login` - Authenticate and retrieve bearer token.
-* `GET /farmers/settings` / `PUT /farmers/settings` - Read/Update settings.
-* `POST /farmers/change-password` - Update password.
-* `GET /farms/portfolio` - Fetch total holdings summary.
-* `POST /soil/reports` - Log soil metrics.
-* `POST /crop-recommendations/generate` - Run AI suitability engine.
-* `POST /disease/scans` - Upload foliage image for scanning.
-* `POST /farm-planner/plans/generate` - Generate AI activity calendar.
-* `GET /system/status` - Live system diagnostics.
-* `GET /system/help` - Help guides and FAQs.
+AgriAssist AI uses a sophisticated prompt-engineering pipeline that feeds contextual database profiles to the Gemini model to synthesize actionable recommendations:
+
+1. **Context Harvesting**: Retrieves active location, soil test data (NPK, pH), and local weather telemetry.
+2. **Accept-Language Localization Routing**: The frontend language selection (English, Telugu, Hindi) is sent via the `Accept-Language` header. The backend parses this header using middleware and commands the Gemini client to generate and serialize localized responses.
+3. **Structured Pydantic Mapping**: The pipeline requests the AI engine to map recommendations directly to Pydantic models (such as `SoilRecommendationSchema` or `CropRecommendationSchema`) to secure structured JSON returns.
+4. **Organic Matter Advice Parsing**: Packs optional elements (such as organic matter enhancements) inside standard schema attributes dynamically delimited by token markers (`[ORGANIC_MATTER_ADVICE]`) allowing the React client to parse and format them into dedicated visual blocks.
+
+---
+
+## 💾 Database Design & Relationships
+
+```mermaid
+erDiagram
+    FARMERS ||--o{ FARMS : manages
+    FARMERS ||--o{ SOIL_REPORTS : logs
+    FARMS ||--o{ SOIL_REPORTS : contains
+    SOIL_REPORTS ||--|| SOIL_RECOMMENDATIONS : has
+    FARMERS ||--o{ CROP_RECOMMENDATIONS : gets
+    FARMERS ||--o{ DISEASE_SCANS : uploads
+    FARMS ||--o{ FARM_TASKS : schedules
+    FARMERS ||--o{ NOTIFICATIONS : receives
+
+    FARMERS {
+        int id PK
+        string email
+        string hashed_password
+        string location
+        string phone_number
+        string theme_preference
+    }
+    FARMS {
+        int id PK
+        int farmer_id FK
+        string name
+        float area_acres
+        string location
+        boolean is_active
+    }
+    SOIL_REPORTS {
+        int id PK
+        int farmer_id FK
+        int farm_id FK
+        float ph
+        float nitrogen
+        float phosphorus
+        float potassium
+        float organic_matter
+        string crop_planned
+        date tested_at
+    }
+    SOIL_RECOMMENDATIONS {
+        int id PK
+        int report_id FK
+        string nitrogen_recommendation
+        string phosphorus_recommendation
+        string potassium_recommendation
+        string fertilizer_schedule
+        string ai_raw_analysis
+    }
+```
 
 ---
 
@@ -130,7 +181,7 @@ This runs the entire stack (React UI, FastAPI backend, MySQL database) with a si
     ```bash
     docker compose up --build -d
     ```
-4.  **Database Seeding (Optional)**: Populates the container database with a recruiter demo profile:
+4.  **Database Seeding**: Populates the container database with a recruiter demo profile:
     ```bash
     docker exec -it agriassist-api python ../scripts/seed_demo_data.py
     ```
@@ -189,18 +240,49 @@ CREATE DATABASE IF NOT EXISTS agriassist;
 
 ---
 
+## 🔑 Environment Variables
+
+The project requires the following environment parameters configured in your root `.env` or container dashboard:
+
+| Variable | Description | Example / Default |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | MySQL Database connection path | `mysql+pymysql://root:password@mysql:3306/agriassist` |
+| `GEMINI_API_KEY` | Google Gemini AI authentication key | `AIzaSyD-xxxxxxxxxxxx` |
+| `JWT_SECRET_KEY` | Security key for encrypting farmer auth tokens | `supersecretkeychangeinproduction1234567890` |
+| `VITE_API_URL` | React client backend endpoint URL | `http://localhost:8000/api/v1` |
+
+---
+
+## 🔌 API Documentation
+All REST routes are prefixed under `/api/v1/`:
+
+* `POST /auth/register` - Create farmer profile.
+* `POST /auth/login` - Authenticate and retrieve bearer token.
+* `GET /farmers/settings` / `PUT /farmers/settings` - Read/Update settings.
+* `POST /farmers/change-password` - Update password.
+* `GET /farms/portfolio` - Fetch total holdings summary.
+* `POST /soil/reports` - Log soil metrics.
+* `POST /soil/reports/{id}/analyze` - Generate agronomist NPK advice.
+* `POST /crop-recommendations/generate` - Run AI suitability engine.
+* `POST /disease/scans` - Upload foliage image for scanning.
+* `POST /farm-planner/plans/generate` - Generate AI activity calendar.
+* `GET /system/status` - Live system diagnostics.
+* `GET /system/help` - Help guides and FAQs.
+
+---
+
 ## 🧪 Automated Testing & Live Checks
 
 ### 1. Run Backend Unit Tests Suite
 Verify database models, authentication constraints, and session logic using pytest:
 ```bash
-PYTHONPATH=backend backend/venv/bin/pytest backend/app/tests/test_sprint14_ui.py
+docker exec -t agriassist-api env PYTHONPATH=/app pytest
 ```
 
 ### 2. Run E2E Production Verification
 Pings the live server endpoints, authenticates the recruiter account, verifies portfolio summaries, and tracks response times:
 ```bash
-backend/venv/bin/python verify_release.py
+docker exec -it agriassist-api python verify_release.py
 ```
 
 ---
@@ -235,3 +317,15 @@ agriassist-ai/
 ├── verify_release.py         # Release integration test suite
 └── RELEASE_NOTES.md          # Sprint roadmap summaries
 ```
+
+---
+
+## 🚀 Future Improvements
+- **Meteorological Push Notifications**: Send severe storm risk warnings directly to farmers via SMS or email using Twilio.
+- **Offline SQLite Synchronization**: Cache logs locally inside an offline database if network connection drops, syncing to MySQL database once signal is restored.
+- **Dynamic Yield ROI Calculators**: Interactive parameter sliders dynamically recalculating net revenue based on localized seed cost.
+
+---
+
+## 👤 Developer & Contributions
+Developed by Pranav Seshasai Setty. Special thanks to Google Deepmind pair-programming assistant for production polish.

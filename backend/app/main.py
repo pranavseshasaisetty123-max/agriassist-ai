@@ -10,6 +10,30 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+from fastapi import Request
+from starlette.middleware.base import BaseHTTPMiddleware
+from app.core.context import request_language
+
+class LanguageMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Extract accept-language header
+        lang = request.headers.get("accept-language", "en")
+        if "te" in lang:
+            lang_code = "te"
+        elif "hi" in lang:
+            lang_code = "hi"
+        else:
+            lang_code = "en"
+            
+        token = request_language.set(lang_code)
+        try:
+            response = await call_next(request)
+        finally:
+            request_language.reset(token)
+        return response
+
+app.add_middleware(LanguageMiddleware)
+
 # Set CORS origins
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(

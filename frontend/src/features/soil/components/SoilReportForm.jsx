@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import api from "../../../services/api";
+import { useLanguage } from "../../../context/LanguageContext";
 
 const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     ph: 6.5,
     nitrogen: 40.0,
@@ -23,17 +25,17 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
 
     // Input validations
     if (formData.ph < 0.0 || formData.ph > 14.0) {
-      setError("Soil pH must be between 0.0 and 14.0.");
+      setError(t("soil_err_ph"));
       setLoading(false);
       return;
     }
     if (formData.nitrogen < 0.0 || formData.phosphorus < 0.0 || formData.potassium < 0.0) {
-      setError("Nutrient values cannot be negative.");
+      setError(t("soil_err_negative"));
       setLoading(false);
       return;
     }
     if (formData.organic_matter !== "" && (formData.organic_matter < 0.0 || formData.organic_matter > 100.0)) {
-      setError("Organic matter must be a percentage between 0% and 100%.");
+      setError(t("soil_err_om_pct"));
       setLoading(false);
       return;
     }
@@ -53,7 +55,7 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
       onClose();
     } catch (err) {
       console.error("Failed to save report:", err);
-      setError(err.response?.data?.detail || "Failed to log soil report. Please check your values.");
+      setError(err.response?.data?.detail || t("soil_err_save"));
     } finally {
       setLoading(false);
     }
@@ -87,7 +89,7 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
         overflowY: "auto"
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h2 style={{ fontSize: "1.35rem", color: "var(--text-primary)" }}>🧪 Log New Soil Test</h2>
+          <h2 style={{ fontSize: "1.35rem", color: "var(--text-primary)" }}>🧪 {t("soil_log_test")}</h2>
           <button onClick={onClose} style={{
             background: "none",
             border: "none",
@@ -113,7 +115,7 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
         <form onSubmit={handleSubmit}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div className="form-group">
-              <label className="form-label" htmlFor="ph">Soil pH</label>
+              <label className="form-label" htmlFor="ph">{t("soil_ph_level")}</label>
               <input
                 type="number"
                 id="ph"
@@ -128,7 +130,7 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
             </div>
             
             <div className="form-group">
-              <label className="form-label" htmlFor="organic_matter">Organic Matter (%)</label>
+              <label className="form-label" htmlFor="organic_matter">{t("soil_organic_matter")}</label>
               <input
                 type="number"
                 id="organic_matter"
@@ -136,7 +138,7 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
                 min="0"
                 max="100"
                 className="form-input"
-                placeholder="Optional"
+                placeholder={t("soil_optional")}
                 value={formData.organic_matter}
                 onChange={(e) => setFormData({ ...formData, organic_matter: e.target.value })}
               />
@@ -153,7 +155,7 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
             marginBottom: "20px"
           }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="nitrogen" style={{ fontSize: "0.75rem" }}>Nitrogen (N)</label>
+              <label className="form-label" htmlFor="nitrogen" style={{ fontSize: "0.75rem" }}>{t("soil_nitrogen")}</label>
               <input
                 type="number"
                 id="nitrogen"
@@ -165,11 +167,11 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
                 required
                 style={{ padding: "8px 12px" }}
               />
-              <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>mg/kg</span>
+              <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{t("soil_mg_kg")}</span>
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="phosphorus" style={{ fontSize: "0.75rem" }}>Phosphorus (P)</label>
+              <label className="form-label" htmlFor="phosphorus" style={{ fontSize: "0.75rem" }}>{t("soil_phosphorus")}</label>
               <input
                 type="number"
                 id="phosphorus"
@@ -181,11 +183,11 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
                 required
                 style={{ padding: "8px 12px" }}
               />
-              <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>mg/kg</span>
+              <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{t("soil_mg_kg")}</span>
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="potassium" style={{ fontSize: "0.75rem" }}>Potassium (K)</label>
+              <label className="form-label" htmlFor="potassium" style={{ fontSize: "0.75rem" }}>{t("soil_potassium")}</label>
               <input
                 type="number"
                 id="potassium"
@@ -197,12 +199,12 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
                 required
                 style={{ padding: "8px 12px" }}
               />
-              <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>mg/kg</span>
+              <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{t("soil_mg_kg")}</span>
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="crop_planned">Planned Crop</label>
+            <label className="form-label" htmlFor="crop_planned">{t("form_crop_planned")}</label>
             <select
               id="crop_planned"
               className="form-input"
@@ -218,7 +220,7 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="tested_at">Testing Date</label>
+            <label className="form-label" htmlFor="tested_at">{t("soil_testing_date")}</label>
             <input
               type="date"
               id="tested_at"
@@ -231,10 +233,10 @@ const SoilReportForm = ({ isOpen, onClose, onReportCreated }) => {
 
           <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "24px" }}>
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
-              Cancel
+              {t("btn_cancel")}
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? "Saving..." : "Log Report"}
+              {loading ? t("btn_loading") : t("soil_log_test")}
             </button>
           </div>
         </form>
